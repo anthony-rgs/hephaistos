@@ -2,6 +2,95 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 9999px oklch(1 0 0) inset !important;
+  -webkit-text-fill-color: oklch(0.145 0 0) !important;
+}
+
+input:-webkit-autofill:focus {
+  outline: 3px solid #cbcbcb;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 9999px #212121 inset !important;
+  -webkit-text-fill-color: oklch(0.985 0 0) !important;
+}
+
+.dark input:-webkit-autofill {
+  border-color: var(--ring);
+}
+.dark input:-webkit-autofill:focus {
+  outline: 3px solid oklch(0.556 0 0 / 0.5);
+}
+
+@font-face {
+  font-family: "helvetica";
+  src: url("./assets/fonts/HelveticaNow-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "helvetica-bold";
+  src: url("./assets/fonts/HelveticaNow-Bold.ttf") format("truetype");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "helvetica-black";
+  src: url("./assets/fonts/HelveticaNow-Black.ttf") format("truetype");
+  font-weight: 900;
+}
+
+@font-face {
+  font-family: "bebas";
+  src: url("./assets/fonts/BebasNeue-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "dejavu";
+  src: url("./assets/fonts/DejaVuSans-Bold.ttf") format("truetype");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "inter";
+  src: url("./assets/fonts/Inter-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "inter-medium";
+  src: url("./assets/fonts/Inter-Medium.ttf") format("truetype");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "inter-semibold";
+  src: url("./assets/fonts/Inter-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "montserrat";
+  src: url("./assets/fonts/Montserrat-Bold.ttf") format("truetype");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "montserrat-light";
+  src: url("./assets/fonts/Montserrat-Light.ttf") format("truetype");
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "montserrat-medium";
+  src: url("./assets/fonts/Montserrat-Medium.ttf") format("truetype");
+  font-weight: 500;
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -12,7 +101,7 @@ body {
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: "Geist Variable", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -122,12 +211,112 @@ body {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes orb-pulse-1 {
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.32;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes orb-pulse-2 {
+  0%,
+  100% {
+    opacity: 0.14;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.26;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes orb-pulse-3 {
+  0%,
+  100% {
+    opacity: 0.08;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.16;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes preview-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes preview-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes preview-slide-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes preview-typewriter {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0% 0 0);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    background-image: radial-gradient(
+      circle,
+      var(--border) 1px,
+      transparent 1px
+    );
+    background-size: 28px 28px;
   }
   html {
     @apply font-sans;
