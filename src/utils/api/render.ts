@@ -139,7 +139,16 @@ async function fetchVideoBlob(jobId: string): Promise<Blob> {
     headers: authHeaders(),
   });
   if (!res.ok) throw new Error("Video not available");
-  return res.blob();
+  if (!res.body) return res.blob();
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  return new Blob(chunks, { type: "video/mp4" });
 }
 
 export async function getVideoObjectUrl(jobId: string): Promise<string> {
