@@ -153,6 +153,8 @@ export async function downloadVideo(jobId: string): Promise<void> {
   const a = document.createElement("a");
   a.href = url;
   a.download = `${jobId}.mp4`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }

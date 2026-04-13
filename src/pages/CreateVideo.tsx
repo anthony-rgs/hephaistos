@@ -74,7 +74,7 @@ export default function CreateVideo() {
     if (job?.status === "done" && job.job_id) {
       getVideoObjectUrl(job.job_id)
         .then(setVideoUrl)
-        .catch(() => null);
+        .catch((err) => console.error("Failed to load video preview:", err));
     }
   }, [job?.status, job?.job_id]);
 
@@ -167,7 +167,7 @@ export default function CreateVideo() {
   const step4Right =
     currentStep === 3 ? (
       isDone && job?.job_id ? (
-        <Button onClick={() => void downloadVideo(job.job_id)}>
+        <Button onClick={() => downloadVideo(job.job_id).catch((err) => console.error("Download failed:", err))}>
           <DownloadIcon className="size-4" />
           Télécharger
         </Button>
