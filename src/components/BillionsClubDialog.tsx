@@ -98,8 +98,8 @@ export default function BillionsClubDialog({
 
   const handleViewChange = (v: ViewMode) => {
     setView(v); setDrillDown(null); setSearch("");
-    setSortKey(v === "artists" ? "artist_name" : v === "albums" ? "title" : "streams");
-    setSortDir(v === "titles" ? "desc" : "asc");
+    setSortKey(v === "titles" ? "streams" : "total_tracks");
+    setSortDir("desc");
   };
 
   const handleSort = (key: string) => {
@@ -116,8 +116,8 @@ export default function BillionsClubDialog({
 
   const handleBack = () => {
     setView(previousView); setDrillDown(null); setSearch("");
-    setSortKey(previousView === "titles" ? "streams" : previousView === "artists" ? "artist_name" : "title");
-    setSortDir("asc");
+    setSortKey(previousView === "titles" ? "streams" : "total_tracks");
+    setSortDir("desc");
   };
 
   const toggle = (title: ApiTitle) => {
