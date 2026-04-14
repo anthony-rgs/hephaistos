@@ -27,6 +27,8 @@ import { useAppSelector } from "@/store";
 import { templates } from "@/utils";
 import { FAKE_PREVIEW } from "@/utils/constants/fakePreview.constants";
 import youtubePreview from "@/assets/images/preview-youtube.png";
+import configurationPreview from "@/assets/images/preview-configuration.png";
+import downloadPreview from "@/assets/images/preview-dowload.png";
 
 // ── Template Gif Carousel ────────────────────────────────────────────────────
 
@@ -184,7 +186,7 @@ const STEPS = [
     title: "Configure tes données",
     description:
       "Remplis les champs. Importe un JSON ou pioche dans une base de données avec toutes les musiques Spotify à plus de 1 milliard d'écoutes. Tous les changements se prévisualisent en temps réel sur la droite.",
-    image: null,
+    image: configurationPreview,
   },
   {
     step: "03",
@@ -198,7 +200,7 @@ const STEPS = [
     title: "Lance le rendu & télécharge",
     description:
       'Un clic sur "Lancer le rendu". Le serveur traite et assemble ta vidéo. Tu suis la progression en direct — si le résultat te plaît, tu télécharges directement depuis l\'app.',
-    image: null,
+    image: downloadPreview,
   },
 ];
 
@@ -740,7 +742,7 @@ export default function Home() {
         min-[850px]:flex min-[850px]:flex-row min-[850px]:items-center min-[850px]:justify-between"
       >
         <div className="flex items-center justify-center gap-2 min-[600px]:justify-start">
-          <span className="font-semibold text-foreground">Héphaïstos</span>
+          <span className="font-semibold text-foreground">vexia.studio</span>
           <span>—</span>
           <span>Générateur de vidéos short-form</span>
         </div>

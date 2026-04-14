@@ -25,21 +25,34 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 h-14 z-50 flex items-center px-6 lg:px-8 gap-8 bg-background/80 backdrop-blur-md border-b border-border">
-      <NavLink to="/" className="font-bold text-base tracking-tight">
-        Héphaïstos
+      <NavLink
+        to="/"
+        className="font-bold text-base tracking-tight"
+      >
+        vexia.studio
       </NavLink>
 
       <nav className="flex items-center gap-1 ml-auto">
         <div className="hidden lg:flex items-center gap-1">
-          <NavLink to="/" end className={linkClass}>
+          <NavLink
+            to="/"
+            end
+            className={linkClass}
+          >
             Accueil
           </NavLink>
           {token && (
             <>
-              <NavLink to="/create-video" className={linkClass}>
+              <NavLink
+                to="/create-video"
+                className={linkClass}
+              >
                 Créer une vidéo
               </NavLink>
-              <NavLink to="/last-job" className={linkClass}>
+              <NavLink
+                to="/last-job"
+                className={linkClass}
+              >
                 Dernier rendu
               </NavLink>
             </>
@@ -54,7 +67,10 @@ export default function Navbar() {
               <LogOutIcon className="size-4" />
             </Button>
           ) : (
-            <NavLink to="/logging" className={linkClass}>
+            <NavLink
+              to="/logging"
+              className={linkClass}
+            >
               Connexion
             </NavLink>
           )}
@@ -65,7 +81,11 @@ export default function Navbar() {
           className="ml-2 text-muted-foreground hover:text-foreground"
           onClick={toggle}
         >
-          {isDark ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+          {isDark ? (
+            <SunIcon className="size-4" />
+          ) : (
+            <MoonIcon className="size-4" />
+          )}
         </Button>
       </nav>
     </header>
