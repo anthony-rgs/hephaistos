@@ -121,14 +121,15 @@ export default function CreateVideo() {
       );
     }
 
+    // Ouvrir la fenêtre YouTube AVANT tout await pour rester dans le contexte du clic utilisateur
+    // (après un await, Chrome peut forcer noopener et couper window.opener)
+    const ytWindow = window.open("https://www.youtube.com", "_blank", "noopener=no");
+
     try {
       // Vérifie si les cookies YouTube doivent être rafraîchis
       const cookiesStatus = await getCookiesStatus();
       if (cookiesStatus.needs_refresh) {
         setIsFetchingCookies(true);
-        // window.open doit être appelé ici (dans le handler du clic) pour éviter le blocage popup
-        // Les window features explicites empêchent Chrome d'ajouter noopener automatiquement
-        const ytWindow = window.open("https://www.youtube.com", "_blank", "noopener=no");
         try {
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -154,6 +155,9 @@ export default function CreateVideo() {
         } finally {
           setIsFetchingCookies(false);
         }
+      } else {
+        // Pas besoin de refresh, on ferme la fenêtre qu'on avait ouverte
+        ytWindow?.close();
       }
 
       const body = buildRenderBody(createVideoState);
