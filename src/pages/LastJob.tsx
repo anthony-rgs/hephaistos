@@ -16,6 +16,7 @@ import {
   downloadVideo,
 } from "@/utils/api/render";
 import { DownloadIcon } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 const screenH = `calc(100vh - 96px - ${PHONE_CHROME_H}px)`;
 
@@ -138,6 +139,18 @@ export default function LastJob() {
                   </div>
                 )}
                 <RenderProgress />
+                {isDone && job?.job_id && (() => {
+                  const token = localStorage.getItem("token") ?? "";
+                  const url = `${window.location.origin}/render/${job.job_id}?token=${token}`;
+                  return (
+                    <div className="flex flex-col items-center gap-2 pt-2">
+                      <p className="text-xs text-muted-foreground">Scanner pour voir la vidéo sur mobile</p>
+                      <div className="rounded-lg border border-border p-3 bg-white">
+                        <QRCodeSVG value={url} size={140} />
+                      </div>
+                    </div>
+                  );
+                })()}
               </>
             )}
           </div>

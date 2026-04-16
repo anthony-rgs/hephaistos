@@ -25,7 +25,7 @@ import {
 } from "@/utils/api/render";
 import { DownloadIcon } from "lucide-react";
 import { getCookiesStatus, postCookies } from "@/utils/api/auth";
-import QRCode from "react-qr-code";
+import { QRCodeSVG } from "qrcode.react";
 
 // ─── Extension Chrome ─────────────────────────────────────────────────────────
 
@@ -241,7 +241,7 @@ export default function CreateVideo() {
                 <div className="flex flex-col items-center gap-2 pt-2">
                   <p className="text-xs text-muted-foreground">Scanner pour voir la vidéo sur mobile</p>
                   <div className="rounded-lg border border-border p-3 bg-white">
-                    <QRCode value={url} size={140} />
+                    <QRCodeSVG value={url} size={140} />
                   </div>
                 </div>
               );
