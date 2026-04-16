@@ -102,6 +102,7 @@ export default function CreateVideo() {
   };
 
   const handleLaunch = async () => {
+    console.log("[launch] handleLaunch appelé");
     setLaunchError(null);
     setIsLaunching(true);
     setVideoUrl(null);
@@ -128,7 +129,15 @@ export default function CreateVideo() {
 
     try {
       // Vérifie si les cookies YouTube doivent être rafraîchis
-      const cookiesStatus = await getCookiesStatus();
+      console.log("[cookies] appel getCookiesStatus...");
+      let cookiesStatus: Awaited<ReturnType<typeof getCookiesStatus>>;
+      try {
+        cookiesStatus = await getCookiesStatus();
+      } catch (e) {
+        console.error("[cookies] getCookiesStatus a échoué:", e);
+        ytWindow?.close();
+        throw e;
+      }
       console.log("[cookies] status:", cookiesStatus);
       if (cookiesStatus.needs_refresh) {
         setIsFetchingCookies(true);
@@ -147,7 +156,7 @@ export default function CreateVideo() {
               window.removeEventListener("message", debugListener);
               ytWindow?.close();
               reject(new Error("Extension Chrome non installée ou cookies non reçus"));
-            }, 30_000);
+            }, 5_000);
 
             const handler = async (event: MessageEvent) => {
               if (event.data?.type !== "ORPHEE_COOKIES") return;
