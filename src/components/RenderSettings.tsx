@@ -303,49 +303,50 @@ export default function RenderSettings() {
           </div>
         )}
 
-        <Separator orientation="vertical" />
-
         {/* Highlight Active */}
         {features.includes("highlightActive") && (
-          <div className="flex flex-col gap-3 w-full">
-            <Label>Mise en avant du clip actif</Label>
-            <Select
-              value={highlightActive.active ? "custom" : "none"}
-              onValueChange={(v) =>
-                dispatch(setHighlightActive({ active: v === "custom" }))
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Aucune</SelectItem>
-                <SelectItem value="custom">Personnalisée</SelectItem>
-              </SelectContent>
-            </Select>
+          <>
+            <Separator orientation="vertical" />
+            <div className="flex flex-col gap-3 w-full">
+              <Label>Mise en avant du clip actif</Label>
+              <Select
+                value={highlightActive.active ? "custom" : "none"}
+                onValueChange={(v) =>
+                  dispatch(setHighlightActive({ active: v === "custom" }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucune</SelectItem>
+                  <SelectItem value="custom">Personnalisée</SelectItem>
+                </SelectContent>
+              </Select>
 
-            {highlightActive.active && (
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Couleur des clips inactifs
-                </Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <ColorSwatchInput
-                    value={highlightActive.inactiveColor}
-                    onChange={(v) =>
-                      dispatch(setHighlightActive({ inactiveColor: v }))
-                    }
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={handleHighlightPreview}
-                  >
-                    Aperçu
-                  </Button>
+              {highlightActive.active && (
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    Couleur des clips inactifs
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <ColorSwatchInput
+                      value={highlightActive.inactiveColor}
+                      onChange={(v) =>
+                        dispatch(setHighlightActive({ inactiveColor: v }))
+                      }
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={handleHighlightPreview}
+                    >
+                      Aperçu
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

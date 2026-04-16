@@ -127,7 +127,8 @@ export default function CreateVideo() {
       if (cookiesStatus.needs_refresh) {
         setIsFetchingCookies(true);
         // window.open doit être appelé ici (dans le handler du clic) pour éviter le blocage popup
-        const ytWindow = window.open("https://www.youtube.com", "_blank");
+        // Les window features explicites empêchent Chrome d'ajouter noopener automatiquement
+        const ytWindow = window.open("https://www.youtube.com", "_blank", "noopener=no");
         try {
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
