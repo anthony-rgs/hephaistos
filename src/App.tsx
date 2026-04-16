@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Home, Logging, CreateVideo, LastJob } from "@/pages";
+import { Home, Logging, CreateVideo, LastJob, RenderView } from "@/pages";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
 
@@ -17,6 +17,7 @@ export default function App() {
               <Route path="/last-job" element={<LastJob />} />
             </Route>
           </Route>
+          <Route path="/render/:jobId" element={<RenderView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
