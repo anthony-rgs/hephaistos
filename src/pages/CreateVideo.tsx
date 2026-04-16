@@ -24,6 +24,7 @@ import {
   downloadVideo,
 } from "@/utils/api/render";
 import { DownloadIcon } from "lucide-react";
+import { getCookiesStatus, postCookies } from "@/utils/api/auth";
 
 // py-12 = 48px * 2 sides = 96px vertical padding on the parent
 const screenH = `calc(100vh - 96px - ${PHONE_CHROME_H}px)`;
@@ -37,6 +38,7 @@ export default function CreateVideo() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [isFetchingCookies, setIsFetchingCookies] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -120,17 +122,53 @@ export default function CreateVideo() {
     }
 
     try {
+      // Vérifie si les cookies YouTube doivent être rafraîchis
+      const cookiesStatus = await getCookiesStatus();
+      if (cookiesStatus.needs_refresh) {
+        setIsFetchingCookies(true);
+        // window.open doit être appelé ici (dans le handler du clic) pour éviter le blocage popup
+        const ytWindow = window.open("https://www.youtube.com", "_blank");
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              window.removeEventListener("message", handler);
+              ytWindow?.close();
+              reject(new Error("Extension Chrome non installée ou cookies non reçus"));
+            }, 30_000);
+
+            const handler = async (event: MessageEvent) => {
+              if (event.data?.type !== "ORPHEE_COOKIES") return;
+              clearTimeout(timeout);
+              window.removeEventListener("message", handler);
+              try {
+                await postCookies(event.data.cookies as string);
+                resolve();
+              } catch {
+                reject(new Error("Impossible d'envoyer les cookies au serveur"));
+              }
+            };
+
+            window.addEventListener("message", handler);
+          });
+        } finally {
+          setIsFetchingCookies(false);
+        }
+      }
+
       const body = buildRenderBody(createVideoState);
       const job = await startRender(body);
       dispatch(setJob(job));
       cleanupRef.current = subscribeToJob(job.job_id, dispatch);
       setCurrentStep(3);
     } catch (err: unknown) {
-      const detail = (err as { detail?: { message?: string } })?.detail
-        ?.message;
+      const detail =
+        err instanceof Error
+          ? err.message
+          : (err as { detail?: { message?: string } })?.detail?.message;
       setLaunchError(detail ?? "Impossible de lancer le rendu.");
     } finally {
       setIsLaunching(false);
+      setIsFetchingCookies(false);
     }
   };
 
@@ -205,8 +243,8 @@ export default function CreateVideo() {
             currentStep={currentStep}
             onPrev={handlePrev}
             onNext={handleNext}
-            nextLabel={currentStep === 2 ? "Lancer le rendu" : undefined}
-            nextDisabled={(currentStep === 2 && !step2Valid) || isLaunching}
+            nextLabel={currentStep === 2 ? (isFetchingCookies ? "Récupération des cookies YouTube..." : "Lancer le rendu") : undefined}
+            nextDisabled={(currentStep === 2 && !step2Valid) || isLaunching || isFetchingCookies}
             showPrev={currentStep > 1}
             leftAction={step4Left}
             rightAction={step4Right}
