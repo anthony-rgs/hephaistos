@@ -26,6 +26,32 @@ import {
 import { DownloadIcon } from "lucide-react";
 import { getCookiesStatus, postCookies } from "@/utils/api/auth";
 
+// ─── Extension Chrome ─────────────────────────────────────────────────────────
+
+const EXTENSION_ID = "ngpmggdeghollnegbaoebbddgiahilhh";
+
+function getYoutubeCookiesFromExtension(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const cr = (window as unknown as { chrome?: { runtime?: { sendMessage: (...args: unknown[]) => void; lastError?: { message: string } } } }).chrome;
+    if (!cr?.runtime) {
+      reject(new Error("Extension Chrome non installée"));
+      return;
+    }
+    cr.runtime.sendMessage(EXTENSION_ID, { type: "ORPHEE_GET_COOKIES" }, (response: unknown) => {
+      if (cr.runtime?.lastError) {
+        reject(new Error(cr.runtime.lastError.message));
+        return;
+      }
+      const r = response as { cookies?: string } | null;
+      if (!r?.cookies) {
+        reject(new Error("Aucun cookie stocké dans l'extension"));
+        return;
+      }
+      resolve(r.cookies);
+    });
+  });
+}
+
 // py-12 = 48px * 2 sides = 96px vertical padding on the parent
 const screenH = `calc(100vh - 96px - ${PHONE_CHROME_H}px)`;
 
@@ -102,79 +128,27 @@ export default function CreateVideo() {
   };
 
   const handleLaunch = async () => {
-    console.log("[launch] handleLaunch appelé");
     setLaunchError(null);
     setIsLaunching(true);
     setVideoUrl(null);
 
-    // Sauvegarde step1 si cochée
     if (createVideoState.saveStep1Checked) {
-      saveStep1({
-        templateValue: createVideoState.templateValue,
-        modeValue: createVideoState.modeValue,
-      });
+      saveStep1({ templateValue: createVideoState.templateValue, modeValue: createVideoState.modeValue });
     }
-    // Sauvegarde step2 (config template) si cochée
     if (createVideoState.saveStep2Checked) {
-      saveTemplateConfig(
-        createVideoState.templateValue,
-        buildTemplateData(createVideoState),
-      );
+      saveTemplateConfig(createVideoState.templateValue, buildTemplateData(createVideoState));
     }
-
-    // Ouvrir la fenêtre YouTube AVANT tout await pour rester dans le contexte du clic utilisateur
-    // Sans features string = nouvel onglet (pas une popup) — requis pour que l'extension détecte le tab
-    const ytWindow = window.open("https://www.youtube.com", "_blank");
-    console.log("[cookies] ytWindow opened:", ytWindow, "| opener will be:", ytWindow ? "accessible" : "NULL - popup bloquée");
-
-    // Enregistrer le listener IMMÉDIATEMENT, avant tout await
-    // (YouTube peut charger + l'extension envoyer le message pendant getCookiesStatus)
-    const cookiesPromise = new Promise<string>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        window.removeEventListener("message", handler);
-        reject(new Error("timeout"));
-      }, 30_000);
-      const handler = (event: MessageEvent) => {
-        console.log("[cookies] message reçu — origin:", event.origin, "| data:", event.data);
-        if (event.data?.type !== "ORPHEE_COOKIES") return;
-        console.log("[cookies] ORPHEE_COOKIES reçu !");
-        clearTimeout(timeout);
-        window.removeEventListener("message", handler);
-        resolve(event.data.cookies as string);
-      };
-      window.addEventListener("message", handler);
-    });
 
     try {
-      // Vérifie si les cookies YouTube doivent être rafraîchis
-      console.log("[cookies] appel getCookiesStatus...");
-      let cookiesStatus: Awaited<ReturnType<typeof getCookiesStatus>>;
-      try {
-        cookiesStatus = await getCookiesStatus();
-      } catch (e) {
-        ytWindow?.close();
-        throw e;
-      }
-      console.log("[cookies] status:", cookiesStatus);
+      const cookiesStatus = await getCookiesStatus();
       if (cookiesStatus.needs_refresh) {
         setIsFetchingCookies(true);
-        console.log("[cookies] needs_refresh=true, en attente du postMessage...");
         try {
-          const cookies = await Promise.race([
-            cookiesPromise,
-            new Promise<never>((_, reject) =>
-              setTimeout(() => { ytWindow?.close(); reject(new Error("Extension Chrome non installée ou cookies non reçus")); }, 5_000)
-            ),
-          ]);
+          const cookies = await getYoutubeCookiesFromExtension();
           await postCookies(cookies);
-          console.log("[cookies] POST /auth/cookies OK");
         } finally {
           setIsFetchingCookies(false);
         }
-      } else {
-        // Pas besoin de refresh, on ferme la fenêtre qu'on avait ouverte
-        console.log("[cookies] needs_refresh=false, fermeture de la fenêtre YouTube");
-        ytWindow?.close();
       }
 
       const body = buildRenderBody(createVideoState);
