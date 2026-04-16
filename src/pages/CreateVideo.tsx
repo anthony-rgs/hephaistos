@@ -124,26 +124,40 @@ export default function CreateVideo() {
     // Ouvrir la fenêtre YouTube AVANT tout await pour rester dans le contexte du clic utilisateur
     // (après un await, Chrome peut forcer noopener et couper window.opener)
     const ytWindow = window.open("https://www.youtube.com", "_blank", "noopener=no");
+    console.log("[cookies] ytWindow opened:", ytWindow, "| opener will be:", ytWindow ? "accessible" : "NULL - popup bloquée");
 
     try {
       // Vérifie si les cookies YouTube doivent être rafraîchis
       const cookiesStatus = await getCookiesStatus();
+      console.log("[cookies] status:", cookiesStatus);
       if (cookiesStatus.needs_refresh) {
         setIsFetchingCookies(true);
+        console.log("[cookies] needs_refresh=true, en attente du postMessage...");
+
+        // Écoute tous les messages pour voir ce qui arrive (debug)
+        const debugListener = (e: MessageEvent) => {
+          console.log("[cookies] message reçu — origin:", e.origin, "| data:", e.data);
+        };
+        window.addEventListener("message", debugListener);
+
         try {
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
               window.removeEventListener("message", handler);
+              window.removeEventListener("message", debugListener);
               ytWindow?.close();
               reject(new Error("Extension Chrome non installée ou cookies non reçus"));
             }, 30_000);
 
             const handler = async (event: MessageEvent) => {
               if (event.data?.type !== "ORPHEE_COOKIES") return;
+              console.log("[cookies] ORPHEE_COOKIES reçu !");
               clearTimeout(timeout);
               window.removeEventListener("message", handler);
+              window.removeEventListener("message", debugListener);
               try {
                 await postCookies(event.data.cookies as string);
+                console.log("[cookies] POST /auth/cookies OK");
                 resolve();
               } catch {
                 reject(new Error("Impossible d'envoyer les cookies au serveur"));
@@ -157,6 +171,7 @@ export default function CreateVideo() {
         }
       } else {
         // Pas besoin de refresh, on ferme la fenêtre qu'on avait ouverte
+        console.log("[cookies] needs_refresh=false, fermeture de la fenêtre YouTube");
         ytWindow?.close();
       }
 
