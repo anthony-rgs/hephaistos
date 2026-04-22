@@ -1,7 +1,28 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { DownloadIcon } from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8001";
+
+async function saveVideo(blob: Blob) {
+  const file = new File([blob], "video.mp4", { type: "video/mp4" });
+
+  // iOS Safari + Android Chrome moderne : share sheet natif → "Enregistrer dans Photos"
+  if (navigator.canShare?.({ files: [file] })) {
+    await navigator.share({ files: [file], title: "Vidéo" });
+    return;
+  }
+
+  // Fallback : lien de téléchargement classique (Android Chrome, desktop)
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "video.mp4";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 export default function RenderView() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -9,8 +30,10 @@ export default function RenderView() {
   const token = searchParams.get("token");
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [blob, setBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!jobId || !token) {
@@ -37,8 +60,9 @@ export default function RenderView() {
           if (done) break;
           chunks.push(value);
         }
-        const blob = new Blob(chunks, { type: "video/mp4" });
-        setVideoUrl(URL.createObjectURL(blob));
+        const b = new Blob(chunks, { type: "video/mp4" });
+        setBlob(b);
+        setVideoUrl(URL.createObjectURL(b));
       } catch (err) {
         if ((err as { name?: string }).name !== "AbortError") {
           setError("Impossible de charger la vidéo.");
@@ -48,12 +72,24 @@ export default function RenderView() {
       }
     })();
 
-    return () => {
-      controller.abort();
-      if (videoUrl) URL.revokeObjectURL(videoUrl);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { controller.abort(); };
   }, [jobId, token]);
+
+  useEffect(() => {
+    return () => { if (videoUrl) URL.revokeObjectURL(videoUrl); };
+  }, [videoUrl]);
+
+  const handleSave = async () => {
+    if (!blob) return;
+    setSaving(true);
+    try {
+      await saveVideo(blob);
+    } catch {
+      // L'utilisateur a annulé le share sheet — pas une erreur
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -82,6 +118,17 @@ export default function RenderView() {
           controls
           className="h-full w-full object-contain"
         />
+      )}
+
+      {blob && (
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="absolute bottom-8 right-4 flex items-center gap-2 rounded-full bg-white/90 px-4 py-2.5 text-sm font-semibold text-black shadow-lg active:scale-95 disabled:opacity-50"
+        >
+          <DownloadIcon className="size-4" />
+          {saving ? "..." : "Enregistrer"}
+        </button>
       )}
     </div>
   );
