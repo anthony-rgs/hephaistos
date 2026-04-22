@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { saveStep1, saveTemplateConfig, buildTemplateData, loadStep1, loadTemplateConfig } from "@/utils/saveDefaults";
-import { setTemplate, setModeValue, applyTemplateDefaults } from "@/store/createVideoSlice";
+import {
+  saveStep1,
+  saveTemplateConfig,
+  buildTemplateData,
+  loadStep1,
+  loadTemplateConfig,
+} from "@/utils/saveDefaults";
+import {
+  setTemplate,
+  setModeValue,
+  applyTemplateDefaults,
+} from "@/store/createVideoSlice";
 
 import {
   CardFooterCustom,
@@ -29,27 +39,40 @@ import { QRCodeSVG } from "qrcode.react";
 
 // ─── Extension Chrome ─────────────────────────────────────────────────────────
 
-const EXTENSION_ID = "ngpmggdeghollnegbaoebbddgiahilhh";
+const EXTENSION_ID = import.meta.env.VITE_EXTENSION_ID as string;
 
 function getYoutubeCookiesFromExtension(): Promise<string> {
   return new Promise((resolve, reject) => {
-    const cr = (window as unknown as { chrome?: { runtime?: { sendMessage: (...args: unknown[]) => void; lastError?: { message: string } } } }).chrome;
+    const cr = (
+      window as unknown as {
+        chrome?: {
+          runtime?: {
+            sendMessage: (...args: unknown[]) => void;
+            lastError?: { message: string };
+          };
+        };
+      }
+    ).chrome;
     if (!cr?.runtime) {
       reject(new Error("Extension Chrome non installée"));
       return;
     }
-    cr.runtime.sendMessage(EXTENSION_ID, { type: "ORPHEE_GET_COOKIES" }, (response: unknown) => {
-      if (cr.runtime?.lastError) {
-        reject(new Error(cr.runtime.lastError.message));
-        return;
-      }
-      const r = response as { cookies?: string } | null;
-      if (!r?.cookies) {
-        reject(new Error("Aucun cookie stocké dans l'extension"));
-        return;
-      }
-      resolve(r.cookies);
-    });
+    cr.runtime.sendMessage(
+      EXTENSION_ID,
+      { type: import.meta.env.VITE_EXTENSION_MESSAGE_TYPE },
+      (response: unknown) => {
+        if (cr.runtime?.lastError) {
+          reject(new Error(cr.runtime.lastError.message));
+          return;
+        }
+        const r = response as { cookies?: string } | null;
+        if (!r?.cookies) {
+          reject(new Error("Aucun cookie stocké dans l'extension"));
+          return;
+        }
+        resolve(r.cookies);
+      },
+    );
   });
 }
 
@@ -88,7 +111,7 @@ export default function CreateVideo() {
       dispatch(setTemplate(s1.templateValue));
       dispatch(setModeValue(s1.modeValue));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Ferme le SSE si on quitte la page
@@ -134,10 +157,16 @@ export default function CreateVideo() {
     setVideoUrl(null);
 
     if (createVideoState.saveStep1Checked) {
-      saveStep1({ templateValue: createVideoState.templateValue, modeValue: createVideoState.modeValue });
+      saveStep1({
+        templateValue: createVideoState.templateValue,
+        modeValue: createVideoState.modeValue,
+      });
     }
     if (createVideoState.saveStep2Checked) {
-      saveTemplateConfig(createVideoState.templateValue, buildTemplateData(createVideoState));
+      saveTemplateConfig(
+        createVideoState.templateValue,
+        buildTemplateData(createVideoState),
+      );
     }
 
     try {
@@ -202,7 +231,13 @@ export default function CreateVideo() {
   const step4Right =
     currentStep === 3 ? (
       isDone && job?.job_id ? (
-        <Button onClick={() => downloadVideo(job.job_id).catch((err) => console.error("Download failed:", err))}>
+        <Button
+          onClick={() =>
+            downloadVideo(job.job_id).catch((err) =>
+              console.error("Download failed:", err),
+            )
+          }
+        >
           <DownloadIcon className="size-4" />
           Télécharger
         </Button>
@@ -234,26 +269,44 @@ export default function CreateVideo() {
               </>
             )}
             {currentStep === 3 && <RenderProgress />}
-            {currentStep === 3 && isDone && job?.job_id && (() => {
-              const token = localStorage.getItem("token") ?? "";
-              const url = `${window.location.origin}/render/${job.job_id}?token=${token}`;
-              return (
-                <div className="flex flex-col items-center gap-2 pt-2">
-                  <p className="text-xs text-muted-foreground">Scanner pour voir la vidéo sur mobile</p>
-                  <div className="rounded-lg border border-border p-3 bg-white">
-                    <QRCodeSVG value={url} size={140} />
+            {currentStep === 3 &&
+              isDone &&
+              job?.job_id &&
+              (() => {
+                const token = localStorage.getItem("token") ?? "";
+                const url = `${window.location.origin}/render/${job.job_id}?token=${token}`;
+                return (
+                  <div className="flex flex-col items-center gap-2 pt-2">
+                    <p className="text-xs text-muted-foreground">
+                      Scanner pour voir la vidéo sur mobile
+                    </p>
+                    <div className="rounded-lg border border-border p-3 bg-white">
+                      <QRCodeSVG
+                        value={url}
+                        size={140}
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
           </div>
 
           <CardFooterCustom
             currentStep={currentStep}
             onPrev={handlePrev}
             onNext={handleNext}
-            nextLabel={currentStep === 2 ? (isFetchingCookies ? "Récupération des cookies YouTube..." : "Lancer le rendu") : undefined}
-            nextDisabled={(currentStep === 2 && !step2Valid) || isLaunching || isFetchingCookies}
+            nextLabel={
+              currentStep === 2
+                ? isFetchingCookies
+                  ? "Récupération des cookies YouTube..."
+                  : "Lancer le rendu"
+                : undefined
+            }
+            nextDisabled={
+              (currentStep === 2 && !step2Valid) ||
+              isLaunching ||
+              isFetchingCookies
+            }
             showPrev={currentStep > 1}
             leftAction={step4Left}
             rightAction={step4Right}
