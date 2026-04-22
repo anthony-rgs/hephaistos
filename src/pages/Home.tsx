@@ -457,16 +457,15 @@ export default function Home() {
           className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-175 h-87.5 rounded-full bg-indigo-500 blur-[150px]"
           style={{ animation: "orb-pulse-3 13s ease-in-out infinite" }}
         />
-        {/* Vignette pour fondre les bords */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,transparent_30%,hsl(var(--background)/0.85)_100%)]" />
 
-        <span
+        {/* <span
           style={heroAnim(0)}
           className="relative z-10 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-widest text-muted-foreground uppercase"
         >
           <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
           Vidéos short-form automatisées
-        </span>
+        </span> */}
 
         <h1 className="relative z-10 text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight leading-none">
           {TITLE.slice(0, displayed)}
@@ -480,8 +479,8 @@ export default function Home() {
             }}
           />
         </h1>
-
-        <p
+      </section>
+      {/* <p
           style={heroAnim(900)}
           className="relative z-10 text-lg text-muted-foreground max-w-sm leading-relaxed"
         >
@@ -511,7 +510,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Stats */}
         <div
           style={heroAnim(1300)}
           className="relative z-10 grid grid-cols-2 gap-x-8 gap-y-3 mt-2 sm:flex sm:items-center sm:gap-6"
@@ -537,7 +535,6 @@ export default function Home() {
 
       <Separator />
 
-      {/* ── Comment ça marche ── */}
       <section className="px-6 py-10 lg:px-12 lg:py-16 flex flex-col gap-10 lg:gap-16">
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl font-semibold tracking-tight">
@@ -561,7 +558,6 @@ export default function Home() {
 
       <Separator />
 
-      {/* ── Features ── */}
       <section className="px-6 py-10 lg:px-12 lg:py-16 flex flex-col gap-10 lg:gap-14">
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl font-semibold tracking-tight">
@@ -609,7 +605,6 @@ export default function Home() {
         ))}
       </section>
 
-      {/* ── CTA ── */}
       <Separator />
       <section className="flex flex-col items-center justify-center text-center px-6 py-14 lg:py-20 gap-5">
         <FadeIn className="flex flex-col items-center gap-5">
@@ -636,7 +631,6 @@ export default function Home() {
         </FadeIn>
       </section>
 
-      {/* ── Stack ── */}
       <Separator />
       <section className="px-6 py-10 lg:px-12 lg:py-14 flex flex-col gap-10">
         <div className="flex flex-col gap-1">
@@ -682,7 +676,6 @@ export default function Home() {
             >
               <div className="relative rounded-2xl border border-border bg-muted/20 overflow-hidden px-5 py-6 lg:px-10 lg:py-8">
                 <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-12">
-                  {/* Nom du service */}
                   <div className="flex flex-col gap-3 lg:w-70 lg:shrink-0">
                     <span className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
                       {s.role}
@@ -700,10 +693,8 @@ export default function Home() {
                     </a>
                   </div>
 
-                  {/* Séparateur vertical */}
                   <div className="hidden lg:block w-px self-stretch bg-border shrink-0" />
 
-                  {/* Techs en grille */}
                   <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-4 lg:gap-x-8">
                     {s.groups.map(({ label, items }) => (
                       <div
@@ -733,7 +724,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
       <Separator />
       <footer
         className="px-6 py-6 lg:px-12 lg:py-8 text-xs text-muted-foreground
@@ -763,7 +753,7 @@ export default function Home() {
             </span>
           </span>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }
