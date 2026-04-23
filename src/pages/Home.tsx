@@ -1,410 +1,405 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  useState,
-  useEffect,
-  useRef,
-  // useCallback
-} from "react";
-// import { useNavigate } from "react-router-dom";
-// import {
-//   ArrowRightIcon,
-//   ArrowUpRightIcon,
-//   BookmarkIcon,
-//   ChevronLeftIcon,
-//   ChevronRightIcon,
-//   FileJsonIcon,
-//   DatabaseIcon,
-//   LinkIcon,
-//   PaletteIcon,
-//   SparklesIcon,
-//   SmartphoneIcon,
-//   LayersIcon,
-//   VideoIcon,
-//   TypeIcon,
-//   SlidersHorizontalIcon,
-//   DropletIcon,
-//   AlignLeftIcon,
-//   WandIcon,
-// } from "lucide-react";
-// import { Button } from "@/components/ui/button";
-// import { Separator } from "@/components/ui/separator";
-// import TemplatePreview from "@/components/TemplatePreview";
-// import { useAppSelector } from "@/store";
-// import { templates } from "@/utils";
-// import { FAKE_PREVIEW } from "@/utils/constants/fakePreview.constants";
-// import youtubePreview from "@/assets/images/preview-youtube.png";
-// import configurationPreview from "@/assets/images/preview-configuration.png";
-// import downloadPreview from "@/assets/images/preview-dowload.png";
+  ArrowRightIcon,
+  ArrowUpRightIcon,
+  BookmarkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  FileJsonIcon,
+  DatabaseIcon,
+  LinkIcon,
+  PaletteIcon,
+  SparklesIcon,
+  SmartphoneIcon,
+  LayersIcon,
+  VideoIcon,
+  TypeIcon,
+  SlidersHorizontalIcon,
+  DropletIcon,
+  AlignLeftIcon,
+  WandIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import TemplatePreview from "@/components/TemplatePreview";
+import { useAppSelector } from "@/store";
+import { templates } from "@/utils";
+import { FAKE_PREVIEW } from "@/utils/constants/fakePreview.constants";
+import youtubePreview from "@/assets/images/preview-youtube.png";
+import configurationPreview from "@/assets/images/preview-configuration.png";
+import downloadPreview from "@/assets/images/preview-dowload.png";
 
 // ── Template Gif Carousel ────────────────────────────────────────────────────
 
-// function TemplateGifCarousel({
-//   onActiveChange,
-// }: {
-//   onActiveChange: (tpl: (typeof templates)[0]) => void;
-// }) {
-//   const [active, setActive] = useState(0);
-//   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+function TemplateGifCarousel({
+  onActiveChange,
+}: {
+  onActiveChange: (tpl: (typeof templates)[0]) => void;
+}) {
+  const [active, setActive] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-//   const [carouselH, setCarouselH] = useState(() =>
-//     window.innerWidth < 768 ? 280 : 400,
-//   );
-//   useEffect(() => {
-//     const handler = () => setCarouselH(window.innerWidth < 768 ? 280 : 400);
-//     window.addEventListener("resize", handler);
-//     return () => window.removeEventListener("resize", handler);
-//   }, []);
-//   const carouselW = Math.round((carouselH * 9) / 16);
+  const [carouselH, setCarouselH] = useState(() =>
+    window.innerWidth < 768 ? 280 : 400,
+  );
+  useEffect(() => {
+    const handler = () => setCarouselH(window.innerWidth < 768 ? 280 : 400);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  const carouselW = Math.round((carouselH * 9) / 16);
 
-//   const startTimer = useCallback(() => {
-//     if (intervalRef.current) clearInterval(intervalRef.current);
-//     intervalRef.current = setInterval(
-//       () => setActive((i) => (i + 1) % templates.length),
-//       4000,
-//     );
-//   }, []);
+  const startTimer = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(
+      () => setActive((i) => (i + 1) % templates.length),
+      4000,
+    );
+  }, []);
 
-//   useEffect(() => {
-//     startTimer();
-//     return () => {
-//       if (intervalRef.current) clearInterval(intervalRef.current);
-//     };
-//   }, [startTimer]);
+  useEffect(() => {
+    startTimer();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [startTimer]);
 
-//   useEffect(() => {
-//     onActiveChange(templates[active]);
-//   }, [active, onActiveChange]);
+  useEffect(() => {
+    onActiveChange(templates[active]);
+  }, [active, onActiveChange]);
 
-//   const go = (dir: 1 | -1) => {
-//     setActive((i) => (i + dir + templates.length) % templates.length);
-//     startTimer();
-//   };
+  const go = (dir: 1 | -1) => {
+    setActive((i) => (i + dir + templates.length) % templates.length);
+    startTimer();
+  };
 
-//   return (
-//     <div className="flex items-center gap-4">
-//       <button
-//         onClick={() => go(-1)}
-//         className="size-7 rounded-full border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors shrink-0"
-//       >
-//         <ChevronLeftIcon className="size-3.5 text-muted-foreground" />
-//       </button>
+  return (
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => go(-1)}
+        className="size-7 rounded-full border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors shrink-0"
+      >
+        <ChevronLeftIcon className="size-3.5 text-muted-foreground" />
+      </button>
 
-//       <div className="flex flex-col gap-3 items-center">
-//         <div
-//           className="rounded-2xl overflow-hidden border border-border shadow-lg"
-//           style={{ width: carouselW, height: carouselH }}
-//         >
-//           <TemplatePreview
-//             mode="fake"
-//             templateOverride={templates[active].label}
-//             fakeOverride={{
-//               bgSrc: FAKE_PREVIEW[templates[active].label]?.bgSrc,
-//             }}
-//           />
-//         </div>
+      <div className="flex flex-col gap-3 items-center">
+        <div
+          className="rounded-2xl overflow-hidden border border-border shadow-lg"
+          style={{ width: carouselW, height: carouselH }}
+        >
+          <TemplatePreview
+            mode="fake"
+            templateOverride={templates[active].label}
+            fakeOverride={{
+              bgSrc: FAKE_PREVIEW[templates[active].label]?.bgSrc,
+            }}
+          />
+        </div>
 
-//         <div className="flex gap-1.5">
-//           {templates.map((_, i) => (
-//             <button
-//               key={i}
-//               onClick={() => {
-//                 setActive(i);
-//                 startTimer();
-//               }}
-//               className={`h-1.5 rounded-full transition-all ${
-//                 i === active
-//                   ? "w-6 bg-foreground"
-//                   : "w-1.5 bg-muted-foreground/30"
-//               }`}
-//             />
-//           ))}
-//         </div>
-//       </div>
+        <div className="flex gap-1.5">
+          {templates.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                setActive(i);
+                startTimer();
+              }}
+              className={`h-1.5 rounded-full transition-all ${
+                i === active
+                  ? "w-6 bg-foreground"
+                  : "w-1.5 bg-muted-foreground/30"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
 
-//       <button
-//         onClick={() => go(1)}
-//         className="size-7 rounded-full border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors shrink-0"
-//       >
-//         <ChevronRightIcon className="size-3.5 text-muted-foreground" />
-//       </button>
-//     </div>
-//   );
-// }
+      <button
+        onClick={() => go(1)}
+        className="size-7 rounded-full border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors shrink-0"
+      >
+        <ChevronRightIcon className="size-3.5 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
 
 // ── Scroll animations ────────────────────────────────────────────────────────
 
-// function useInView(threshold = 0.12) {
-//   const ref = useRef<HTMLDivElement>(null);
-//   const [visible, setVisible] = useState(false);
-//   useEffect(() => {
-//     const el = ref.current;
-//     if (!el) return;
-//     const obs = new IntersectionObserver(
-//       ([entry]) => {
-//         if (entry.isIntersecting) {
-//           setVisible(true);
-//           obs.disconnect();
-//         }
-//       },
-//       { threshold },
-//     );
-//     obs.observe(el);
-//     return () => obs.disconnect();
-//   }, [threshold]);
-//   return { ref, visible };
-// }
+function useInView(threshold = 0.12) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
 
-// function FadeIn({
-//   children,
-//   delay = 0,
-//   className = "",
-// }: {
-//   children: React.ReactNode;
-//   delay?: number;
-//   className?: string;
-// }) {
-//   const { ref, visible } = useInView();
-//   return (
-//     <div
-//       ref={ref}
-//       className={`transition-all duration-700 ease-out ${
-//         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-//       } ${className}`}
-//       style={{ transitionDelay: `${delay}ms` }}
-//     >
-//       {children}
-//     </div>
-//   );
-// }
+function FadeIn({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const { ref, visible } = useInView();
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
 
 // ── How it works ─────────────────────────────────────────────────────────────
 
-// const STEPS = [
-//   {
-//     step: "01",
-//     title: "Choisis ton format",
-//     description:
-//       "Quatre templates disponibles, chacun pensé pour un style de contenu différent. Top, Classic, Minimal ou Expanded.",
-//     carousel: true,
-//   },
-//   {
-//     step: "02",
-//     title: "Configure tes données",
-//     description:
-//       "Remplis les champs. Importe un JSON ou pioche dans une base de données avec toutes les musiques Spotify à plus de 1 milliard d'écoutes. Tous les changements se prévisualisent en temps réel sur la droite.",
-//     image: configurationPreview,
-//   },
-//   {
-//     step: "03",
-//     title: "Ajoute tes sources vidéo",
-//     description:
-//       "Colle n'importe quel lien vidéo ou utilise la recherche intégrée pour trouver directement sur YouTube.",
-//     image: youtubePreview,
-//   },
-//   {
-//     step: "04",
-//     title: "Lance le rendu & télécharge",
-//     description:
-//       'Un clic sur "Lancer le rendu". Le serveur traite et assemble ta vidéo. Tu suis la progression en direct — si le résultat te plaît, tu télécharges directement depuis l\'app.',
-//     image: downloadPreview,
-//   },
-// ];
+const STEPS = [
+  {
+    step: "01",
+    title: "Choisis ton format",
+    description:
+      "Quatre templates disponibles, chacun pensé pour un style de contenu différent. Top, Classic, Minimal ou Expanded.",
+    carousel: true,
+  },
+  {
+    step: "02",
+    title: "Configure tes données",
+    description:
+      "Remplis les champs. Importe un JSON ou pioche dans une base de données avec toutes les musiques Spotify à plus de 1 milliard d'écoutes. Tous les changements se prévisualisent en temps réel sur la droite.",
+    image: configurationPreview,
+  },
+  {
+    step: "03",
+    title: "Ajoute tes sources vidéo",
+    description:
+      "Colle n'importe quel lien vidéo ou utilise la recherche intégrée pour trouver directement sur YouTube.",
+    image: youtubePreview,
+  },
+  {
+    step: "04",
+    title: "Lance le rendu & télécharge",
+    description:
+      'Un clic sur "Lancer le rendu". Le serveur traite et assemble ta vidéo. Tu suis la progression en direct — si le résultat te plaît, tu télécharges directement depuis l\'app.',
+    image: downloadPreview,
+  },
+];
 
 // ── Step item (animated) ──────────────────────────────────────────────────────
 
-// function StepItem({
-//   s,
-//   i,
-//   activeTemplate,
-//   setActiveTemplate,
-// }: {
-//   s: (typeof STEPS)[number];
-//   i: number;
-//   activeTemplate: (typeof templates)[0];
-//   setActiveTemplate: (t: (typeof templates)[0]) => void;
-// }) {
-//   const { ref, visible } = useInView(0.1);
-//   return (
-//     <div
-//       ref={ref}
-//       className={`flex flex-col gap-8 md:flex-row md:items-center md:gap-16 transition-all duration-700 ease-out ${
-//         i % 2 === 1 ? "md:flex-row-reverse" : ""
-//       } ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
-//     >
-//       <div className="flex-1 flex flex-col gap-4">
-//         <span className="text-5xl font-bold text-[#a1a1a1] opacity-40 leading-none select-none">
-//           {s.step}
-//         </span>
-//         <h3 className="text-xl font-semibold tracking-tight">{s.title}</h3>
-//         <p className="text-muted-foreground leading-relaxed max-w-md">
-//           {s.description}
-//         </p>
-//         {i === 0 && (
-//           <div className="flex flex-col gap-1.5 pt-1 border-t border-border">
-//             <div className="flex items-center gap-1.5 mt-4">
-//               <span className="text-sm font-semibold capitalize">
-//                 {activeTemplate.label}
-//               </span>
-//               {activeTemplate.tags.map((tag) => (
-//                 <span
-//                   key={tag}
-//                   className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-//                 >
-//                   {tag}
-//                 </span>
-//               ))}
-//             </div>
-//             <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-//               {activeTemplate.description}
-//             </p>
-//           </div>
-//         )}
-//       </div>
+function StepItem({
+  s,
+  i,
+  activeTemplate,
+  setActiveTemplate,
+}: {
+  s: (typeof STEPS)[number];
+  i: number;
+  activeTemplate: (typeof templates)[0];
+  setActiveTemplate: (t: (typeof templates)[0]) => void;
+}) {
+  const { ref, visible } = useInView(0.1);
+  return (
+    <div
+      ref={ref}
+      className={`flex flex-col gap-8 md:flex-row md:items-center md:gap-16 transition-all duration-700 ease-out ${
+        i % 2 === 1 ? "md:flex-row-reverse" : ""
+      } ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
+    >
+      <div className="flex-1 flex flex-col gap-4">
+        <span className="text-5xl font-bold text-[#a1a1a1] opacity-40 leading-none select-none">
+          {s.step}
+        </span>
+        <h3 className="text-xl font-semibold tracking-tight">{s.title}</h3>
+        <p className="text-muted-foreground leading-relaxed max-w-md">
+          {s.description}
+        </p>
+        {i === 0 && (
+          <div className="flex flex-col gap-1.5 pt-1 border-t border-border">
+            <div className="flex items-center gap-1.5 mt-4">
+              <span className="text-sm font-semibold capitalize">
+                {activeTemplate.label}
+              </span>
+              {activeTemplate.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
+              {activeTemplate.description}
+            </p>
+          </div>
+        )}
+      </div>
 
-//       <div className="flex-1 flex justify-center">
-//         {"carousel" in s && s.carousel ? (
-//           <TemplateGifCarousel onActiveChange={setActiveTemplate} />
-//         ) : "image" in s && s.image ? (
-//           <img
-//             src={s.image}
-//             alt={s.title}
-//             className="w-full rounded-2xl border border-border shadow-lg object-cover"
-//           />
-//         ) : (
-//           <div className="w-full aspect-video rounded-2xl border border-dashed border-border bg-muted/30 flex items-center justify-center">
-//             <span className="text-xs text-muted-foreground">Image à venir</span>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
+      <div className="flex-1 flex justify-center">
+        {"carousel" in s && s.carousel ? (
+          <TemplateGifCarousel onActiveChange={setActiveTemplate} />
+        ) : "image" in s && s.image ? (
+          <img
+            src={s.image}
+            alt={s.title}
+            className="w-full rounded-2xl border border-border shadow-lg object-cover"
+          />
+        ) : (
+          <div className="w-full aspect-video rounded-2xl border border-dashed border-border bg-muted/30 flex items-center justify-center">
+            <span className="text-xs text-muted-foreground">Image à venir</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Features ─────────────────────────────────────────────────────────────────
 
-// const FEATURE_GROUPS = [
-//   {
-//     category: "Données",
-//     items: [
-//       {
-//         icon: LinkIcon,
-//         label: "Tout lien vidéo",
-//         description:
-//           "YouTube, Twitch, ou n'importe quelle URL compatible. Pas de restriction de plateforme.",
-//       },
-//       {
-//         icon: FileJsonIcon,
-//         label: "Import JSON",
-//         description:
-//           "Colle un tableau de clips ou un objet complet avec titre global. Validation et aperçu instantané avant import.",
-//       },
-//       {
-//         icon: DatabaseIcon,
-//         label: "Billions Club",
-//         description:
-//           "Base de données intégrée de toutes les musiques dépassant 1 milliard de streams sur Spotify. Recherche par titre, artiste ou album.",
-//       },
-//       {
-//         icon: LayersIcon,
-//         label: "Multi-clips",
-//         description:
-//           "Autant de clips que tu veux. Chaque extrait a ses propres réglages de style, durée et point de départ.",
-//       },
-//     ],
-//   },
-//   {
-//     category: "Style & texte",
-//     items: [
-//       {
-//         icon: TypeIcon,
-//         label: "11 polices",
-//         description:
-//           "Bebas Neue, DejaVu Sans, Inter, Inter Medium, Inter SemiBold, Montserrat, Montserrat Light, Montserrat Medium, Helvetica, Helvetica Bold, Helvetica Black.",
-//       },
-//       {
-//         icon: PaletteIcon,
-//         label: "Couleurs & bordures",
-//         description:
-//           "Colorpicker ou saisie hexadécimale pour chaque texte. Épaisseur de bordure réglable indépendamment.",
-//       },
-//       {
-//         icon: WandIcon,
-//         label: "5 animations",
-//         description:
-//           "Aucune, fondu, machine à écrire, glissement gauche, glissement bas. Par titre ou sous-titre, avec aperçu live.",
-//       },
-//       {
-//         icon: AlignLeftIcon,
-//         label: "Position du texte",
-//         description:
-//           "Aligné à gauche ou centré. Applicable individuellement ou à tous les clips d'un coup.",
-//       },
-//     ],
-//   },
-//   {
-//     category: "Paramètres rendu",
-//     items: [
-//       {
-//         icon: VideoIcon,
-//         label: "Fond personnalisable",
-//         description:
-//           "Vidéo floutée, blanc, noir ou couleur custom via colorpicker. Visible en temps réel dans la prévisualisation.",
-//       },
-//       {
-//         icon: SlidersHorizontalIcon,
-//         label: "Marge & espacement",
-//         description:
-//           "Contrôle la marge horizontale de la vidéo et l'espacement entre le titre, sous-titre et la vidéo.",
-//       },
-//       {
-//         icon: SparklesIcon,
-//         label: "Transition douce",
-//         description:
-//           "Transition animée entre chaque clip. Durée configurable entre 0.1s et 2s.",
-//       },
-//       {
-//         icon: DropletIcon,
-//         label: "Filigrane",
-//         description:
-//           "Texte en bas à gauche de la vidéo. Police, taille, couleur et opacité configurables.",
-//       },
-//     ],
-//   },
-//   {
-//     category: "Prévisualisation",
-//     items: [
-//       {
-//         icon: BookmarkIcon,
-//         label: "Sauvegarde des paramètres",
-//         description:
-//           "Enregistre ton template, ton mode et tous tes réglages de style par défaut. Ils sont restaurés automatiquement à chaque nouvelle session.",
-//       },
-//       {
-//         icon: SmartphoneIcon,
-//         label: "Mockup iPhone live",
-//         description:
-//           "Chaque modification est reflétée instantanément dans un vrai rendu CSS du contenu final en 1080×1920.",
-//       },
-//       {
-//         icon: SparklesIcon,
-//         label: "Aperçu highlight actif",
-//         description:
-//           "Simule l'animation de mise en avant clip par clip dans la preview, du dernier vers le premier.",
-//       },
-//     ],
-//   },
-// ];
+const FEATURE_GROUPS = [
+  {
+    category: "Données",
+    items: [
+      {
+        icon: LinkIcon,
+        label: "Tout lien vidéo",
+        description:
+          "YouTube, Twitch, ou n'importe quelle URL compatible. Pas de restriction de plateforme.",
+      },
+      {
+        icon: FileJsonIcon,
+        label: "Import JSON",
+        description:
+          "Colle un tableau de clips ou un objet complet avec titre global. Validation et aperçu instantané avant import.",
+      },
+      {
+        icon: DatabaseIcon,
+        label: "Billions Club",
+        description:
+          "Base de données intégrée de toutes les musiques dépassant 1 milliard de streams sur Spotify. Recherche par titre, artiste ou album.",
+      },
+      {
+        icon: LayersIcon,
+        label: "Multi-clips",
+        description:
+          "Autant de clips que tu veux. Chaque extrait a ses propres réglages de style, durée et point de départ.",
+      },
+    ],
+  },
+  {
+    category: "Style & texte",
+    items: [
+      {
+        icon: TypeIcon,
+        label: "11 polices",
+        description:
+          "Bebas Neue, DejaVu Sans, Inter, Inter Medium, Inter SemiBold, Montserrat, Montserrat Light, Montserrat Medium, Helvetica, Helvetica Bold, Helvetica Black.",
+      },
+      {
+        icon: PaletteIcon,
+        label: "Couleurs & bordures",
+        description:
+          "Colorpicker ou saisie hexadécimale pour chaque texte. Épaisseur de bordure réglable indépendamment.",
+      },
+      {
+        icon: WandIcon,
+        label: "5 animations",
+        description:
+          "Aucune, fondu, machine à écrire, glissement gauche, glissement bas. Par titre ou sous-titre, avec aperçu live.",
+      },
+      {
+        icon: AlignLeftIcon,
+        label: "Position du texte",
+        description:
+          "Aligné à gauche ou centré. Applicable individuellement ou à tous les clips d'un coup.",
+      },
+    ],
+  },
+  {
+    category: "Paramètres rendu",
+    items: [
+      {
+        icon: VideoIcon,
+        label: "Fond personnalisable",
+        description:
+          "Vidéo floutée, blanc, noir ou couleur custom via colorpicker. Visible en temps réel dans la prévisualisation.",
+      },
+      {
+        icon: SlidersHorizontalIcon,
+        label: "Marge & espacement",
+        description:
+          "Contrôle la marge horizontale de la vidéo et l'espacement entre le titre, sous-titre et la vidéo.",
+      },
+      {
+        icon: SparklesIcon,
+        label: "Transition douce",
+        description:
+          "Transition animée entre chaque clip. Durée configurable entre 0.1s et 2s.",
+      },
+      {
+        icon: DropletIcon,
+        label: "Filigrane",
+        description:
+          "Texte en bas à gauche de la vidéo. Police, taille, couleur et opacité configurables.",
+      },
+    ],
+  },
+  {
+    category: "Prévisualisation",
+    items: [
+      {
+        icon: BookmarkIcon,
+        label: "Sauvegarde des paramètres",
+        description:
+          "Enregistre ton template, ton mode et tous tes réglages de style par défaut. Ils sont restaurés automatiquement à chaque nouvelle session.",
+      },
+      {
+        icon: SmartphoneIcon,
+        label: "Mockup iPhone live",
+        description:
+          "Chaque modification est reflétée instantanément dans un vrai rendu CSS du contenu final en 1080×1920.",
+      },
+      {
+        icon: SparklesIcon,
+        label: "Aperçu highlight actif",
+        description:
+          "Simule l'animation de mise en avant clip par clip dans la preview, du dernier vers le premier.",
+      },
+    ],
+  },
+];
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 const TITLE = "Vexia";
-// const heroAnim = (delay: number): React.CSSProperties => ({
-//   animation: `hero-fade-up 0.7s ease-out ${delay}ms both`,
-// });
+const heroAnim = (delay: number): React.CSSProperties => ({
+  animation: `hero-fade-up 0.7s ease-out ${delay}ms both`,
+});
 
 export default function Home() {
-  // const navigate = useNavigate();
-  // const token = useAppSelector((s) => s.auth.token);
-  // const [activeTemplate, setActiveTemplate] = useState(templates[0]);
+  const navigate = useNavigate();
+  const token = useAppSelector((s) => s.auth.token);
+  const [activeTemplate, setActiveTemplate] = useState(templates[0]);
 
   // Typewriter loop
   const [displayed, setDisplayed] = useState(0);
@@ -464,13 +459,13 @@ export default function Home() {
         />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,transparent_30%,hsl(var(--background)/0.85)_100%)]" />
 
-        {/* <span
+        <span
           style={heroAnim(0)}
           className="relative z-10 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-widest text-muted-foreground uppercase"
         >
           <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
           Vidéos short-form automatisées
-        </span> */}
+        </span>
 
         <h1 className="relative z-10 text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight leading-none">
           {TITLE.slice(0, displayed)}
@@ -484,8 +479,7 @@ export default function Home() {
             }}
           />
         </h1>
-      </section>
-      {/* <p
+        <p
           style={heroAnim(900)}
           className="relative z-10 text-lg text-muted-foreground max-w-sm leading-relaxed"
         >
@@ -758,7 +752,7 @@ export default function Home() {
             </span>
           </span>
         </div>
-      </footer> */}
+      </footer>
     </div>
   );
 }
