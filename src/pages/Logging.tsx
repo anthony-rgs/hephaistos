@@ -3,11 +3,10 @@ import { LoggingCard } from "@/components";
 export default function Logging() {
   return (
     <section className="relative flex h-[calc(100vh-3.5rem)] overflow-hidden">
-
       {/* Left — branding */}
       <div className="hidden lg:flex flex-col justify-between flex-1 px-16 py-14 border-r border-border overflow-hidden relative">
         {/* Orb */}
-        <div className="pointer-events-none absolute -top-20 -left-20 w-[500px] h-[500px] rounded-full bg-violet-600 blur-[140px] opacity-20" />
+        <div className="pointer-events-none absolute -top-20 -left-20 w-125 h-125 rounded-full bg-violet-600 blur-[140px] opacity-20" />
         <div className="pointer-events-none absolute bottom-0 right-0 w-72 h-72 rounded-full bg-blue-500 blur-[120px] opacity-15" />
 
         {/* Center headline */}
@@ -38,7 +37,10 @@ export default function Logging() {
             { value: "100%", label: "personnalisable" },
             { value: "∞", label: "clips" },
           ].map(({ value, label }) => (
-            <div key={label} className="flex flex-col gap-0.5">
+            <div
+              key={label}
+              className="flex flex-col gap-0.5"
+            >
               <span className="text-2xl font-black tracking-tight uppercase leading-none">
                 {value}
               </span>
@@ -56,7 +58,6 @@ export default function Logging() {
         <div className="pointer-events-none lg:hidden absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-violet-600 blur-[120px] opacity-20" />
         <LoggingCard />
       </div>
-
     </section>
   );
 }

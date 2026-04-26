@@ -14,7 +14,13 @@ import { setTemplate } from "@/store/createVideoSlice";
 import type { RootState } from "@/store";
 import TemplatePreview from "./TemplatePreview";
 
-function FrozenThumbnail({ templateLabel, width, height }: { templateLabel: string; width: number; height: number }) {
+function FrozenThumbnail({
+  templateLabel,
+}: {
+  templateLabel: string;
+  width: number;
+  height: number;
+}) {
   const bgSrc = FAKE_PREVIEW[templateLabel]?.bgSrc;
   const [frozenSrc, setFrozenSrc] = useState<string>();
 
@@ -47,16 +53,22 @@ const THUMB_W = Math.round((THUMB_H * 9) / 16);
 
 export default function SelectTemplate() {
   const dispatch = useDispatch();
-  const templateValue = useSelector((state: RootState) => state.createVideo.templateValue);
+  const templateValue = useSelector(
+    (state: RootState) => state.createVideo.templateValue,
+  );
 
   return (
     <div>
       <div className="flex flex-col gap-0.5 mb-5">
         <div className="flex items-center gap-2">
           <span className="w-4 h-px bg-violet-400" />
-          <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">Étape 1</span>
+          <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+            Étape 1
+          </span>
         </div>
-        <h3 className="text-base font-semibold tracking-tight">Sélectionner un template</h3>
+        <h3 className="text-base font-semibold tracking-tight">
+          Sélectionner un template
+        </h3>
       </div>
 
       <RadioGroup
@@ -79,7 +91,9 @@ export default function SelectTemplate() {
                   <TemplatePreview
                     mode="fake"
                     templateOverride={template.label}
-                    fakeOverride={{ bgSrc: FAKE_PREVIEW[template.label]?.bgSrc }}
+                    fakeOverride={{
+                      bgSrc: FAKE_PREVIEW[template.label]?.bgSrc,
+                    }}
                   />
                 ) : (
                   <FrozenThumbnail
