@@ -1,4 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
+import { useEffect, useState } from "react";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import {
   Field,
@@ -7,12 +8,39 @@ import {
   FieldLabel,
   FieldTitle,
 } from "./ui/field";
-import { CardTitle } from "./ui/card";
 import { capitalize, templates } from "@/utils";
 import { FAKE_PREVIEW } from "@/utils/constants/fakePreview.constants";
 import { setTemplate } from "@/store/createVideoSlice";
 import type { RootState } from "@/store";
 import TemplatePreview from "./TemplatePreview";
+
+function FrozenThumbnail({ templateLabel, width, height }: { templateLabel: string; width: number; height: number }) {
+  const bgSrc = FAKE_PREVIEW[templateLabel]?.bgSrc;
+  const [frozenSrc, setFrozenSrc] = useState<string>();
+
+  useEffect(() => {
+    if (!bgSrc) return;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext("2d")?.drawImage(img, 0, 0);
+      setFrozenSrc(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.src = bgSrc;
+  }, [bgSrc]);
+
+  if (!frozenSrc) return <div className="w-full h-full bg-muted/60" />;
+
+  return (
+    <TemplatePreview
+      mode="fake"
+      templateOverride={templateLabel}
+      fakeOverride={{ bgSrc: frozenSrc }}
+    />
+  );
+}
 
 const THUMB_H = 96;
 const THUMB_W = Math.round((THUMB_H * 9) / 16);
@@ -23,7 +51,13 @@ export default function SelectTemplate() {
 
   return (
     <div>
-      <CardTitle className="mb-4">Sélectionner un template</CardTitle>
+      <div className="flex flex-col gap-0.5 mb-5">
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-px bg-violet-400" />
+          <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">Étape 1</span>
+        </div>
+        <h3 className="text-base font-semibold tracking-tight">Sélectionner un template</h3>
+      </div>
 
       <RadioGroup
         value={templateValue}
@@ -36,16 +70,24 @@ export default function SelectTemplate() {
             key={`${template.label}-key`}
           >
             <Field orientation="horizontal">
-              {/* Miniature preview — masquée en-dessous de 1280px */}
+              {/* Miniature — GIF animé si sélectionné, premier frame figé sinon */}
               <div
                 className="hidden xl:block rounded-md overflow-hidden border border-border shrink-0"
                 style={{ width: THUMB_W, height: THUMB_H }}
               >
-                <TemplatePreview
-                  mode="fake"
-                  templateOverride={template.label}
-                  fakeOverride={{ bgSrc: FAKE_PREVIEW[template.label]?.bgSrc }}
-                />
+                {template.label === templateValue ? (
+                  <TemplatePreview
+                    mode="fake"
+                    templateOverride={template.label}
+                    fakeOverride={{ bgSrc: FAKE_PREVIEW[template.label]?.bgSrc }}
+                  />
+                ) : (
+                  <FrozenThumbnail
+                    templateLabel={template.label}
+                    width={THUMB_W}
+                    height={THUMB_H}
+                  />
+                )}
               </div>
 
               <FieldContent>

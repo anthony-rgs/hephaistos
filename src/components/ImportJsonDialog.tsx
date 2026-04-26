@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent } from "./ui/dialog";
 import { Separator } from "./ui/separator";
 import { Button } from "./ui/button";
 import { XIcon } from "lucide-react";
@@ -52,7 +52,7 @@ const DEFAULT_TITLE_STYLE: ClipData["titleStyle"] = {
   size: 45,
 };
 const DEFAULT_GLOBAL_TITLE_STYLE: GlobalTitleData["titleStyle"] = {
-  border: 3,
+  border: 2,
   color: "0xFFFFFF",
   font: "dejavu",
   size: 60,
@@ -206,9 +206,19 @@ export default function ImportJsonDialog({
       onOpenChange={handleClose}
     >
       <DialogContent className="sm:max-w-[80dvw] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle>Importer un JSON</DialogTitle>
-        </DialogHeader>
+        <div className="flex items-center px-6 py-4 border-b shrink-0">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-px bg-violet-400" />
+              <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+                Import
+              </span>
+            </div>
+            <h2 className="text-base font-semibold tracking-tight leading-none">
+              Importer un JSON
+            </h2>
+          </div>
+        </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] h-[65vh] min-h-0">
           {/* Colonne gauche — textarea */}
@@ -220,7 +230,7 @@ export default function ImportJsonDialog({
               .
             </p>
             <textarea
-              className="flex-1 w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="flex-1 w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:border-violet-400 focus:ring-3 focus:ring-violet-400/20"
               placeholder={PLACEHOLDER}
               value={raw}
               onChange={(e) => handleChange(e.target.value)}
@@ -235,12 +245,15 @@ export default function ImportJsonDialog({
 
           {/* Colonne droite — aperçu */}
           <div className="flex flex-col min-h-0 p-4 gap-3">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Aperçu{" "}
-              {parsed
-                ? `(${clips.length} clip${clips.length > 1 ? "s" : ""})`
-                : ""}
-            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="w-4 h-px bg-violet-400" />
+              <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+                Aperçu
+                {parsed
+                  ? ` — ${clips.length} clip${clips.length > 1 ? "s" : ""}`
+                  : ""}
+              </span>
+            </div>
 
             <div className="flex-1 overflow-y-auto flex flex-col gap-1">
               {!parsed ? (

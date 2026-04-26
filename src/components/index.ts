@@ -4,6 +4,7 @@ import CreateVideoSelects from "./CreateVideoSelects";
 import CreateVideoSelectDatas from "./CreateVideoSelectDatas";
 import LoggingCard from "./LoggingCard";
 import Logo from "./Logo";
+import RenderJobContent from "./RenderJobContent";
 import RenderProgress from "./RenderProgress";
 import RenderSettings from "./RenderSettings";
 import SelectMode from "./SelectMode";
@@ -12,6 +13,7 @@ import YoutubeSearch from "./YoutubeSearch";
 
 export {
   CardFooterCustom,
+  RenderJobContent,
   CheckboxSaveData,
   CreateVideoSelects,
   CreateVideoSelectDatas,

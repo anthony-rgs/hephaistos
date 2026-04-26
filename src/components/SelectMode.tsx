@@ -1,5 +1,4 @@
 import { useDispatch, useSelector } from "react-redux";
-import { CardTitle } from "./ui/card";
 import {
   Field,
   FieldContent,
@@ -37,7 +36,13 @@ export default function SelectMode() {
 
   return (
     <div>
-      <CardTitle className="mb-4">Sélectionner un mode</CardTitle>
+      <div className="flex flex-col gap-0.5 mb-5">
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-px bg-violet-400" />
+          <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">Mode</span>
+        </div>
+        <h3 className="text-base font-semibold tracking-tight">Sélectionner un mode</h3>
+      </div>
 
       <RadioGroup
         value={modeValue}

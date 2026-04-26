@@ -13,7 +13,6 @@ import {
 import {
   Popover,
   PopoverContent,
-  PopoverTitle,
   PopoverTrigger,
 } from "./ui/popover";
 
@@ -155,7 +154,7 @@ export default function StylePopover<T extends StyleBase>({
           tabIndex={-1}
           size="icon-sm"
           variant="ghost"
-          className="shrink-0 text-muted-foreground hover:text-foreground"
+          className="shrink-0 text-violet-400 hover:text-violet-400"
           title={`Style — ${label}`}
         >
           <PaletteIcon className="size-3.5" />
@@ -165,7 +164,14 @@ export default function StylePopover<T extends StyleBase>({
         align="end"
         className="gap-3 w-64"
       >
-        <PopoverTitle>Style — {label}</PopoverTitle>
+        <div className="flex flex-col gap-0.5 pb-1">
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-px bg-violet-400" />
+            <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">Style</span>
+          </div>
+          <h3 className="text-sm font-semibold tracking-tight">{label}</h3>
+        </div>
+        <div className="h-px bg-border -mx-2.5" />
 
         {/* Font */}
         <div className="flex flex-col gap-1.5">

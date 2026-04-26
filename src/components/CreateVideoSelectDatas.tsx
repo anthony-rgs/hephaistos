@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Separator } from "./ui/separator";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { addClip, removeClip } from "@/store/createVideoSlice";
 import TextStyleFields from "./TextStyleFields";
@@ -11,6 +9,21 @@ import CheckboxSaveData from "./CheckboxSaveData";
 import BillionsClubDialog from "./BillionsClubDialog";
 import ImportJsonDialog from "./ImportJsonDialog";
 import RenderSettings from "./RenderSettings";
+import { PlusIcon, Trash2Icon, DatabaseIcon, FileJsonIcon } from "lucide-react";
+
+function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-2">
+        <span className="w-4 h-px bg-violet-400" />
+        <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+          {eyebrow}
+        </span>
+      </div>
+      <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+    </div>
+  );
+}
 
 export default function CreateVideoSelectDatas() {
   const dispatch = useAppDispatch();
@@ -20,89 +33,81 @@ export default function CreateVideoSelectDatas() {
   const [importOpen, setImportOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-between items">
-        <CardTitle className="flex items-center">
-          Sélectionner un template
-        </CardTitle>
-        <div className="flex gap-4">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setBillionsOpen(true)}
-          >
-            Billions Club Data
+    <div className="flex flex-col gap-8 pt-4">
+
+      {/* Actions d'import */}
+      <div className="flex items-center justify-between">
+        <SectionHeader eyebrow="Étape 2" title="Données & style" />
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setBillionsOpen(true)}>
+            <DatabaseIcon className="size-3.5" />
+            Billions Club
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setImportOpen(true)}
-          >
-            + Importer un Json
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+            <FileJsonIcon className="size-3.5" />
+            Importer JSON
           </Button>
         </div>
       </div>
 
+      {/* Titre global */}
       {features.includes("globalTitle") && (
-        <>
-          <CardTitle>Titre global</CardTitle>
+        <div className="flex flex-col gap-4">
+          <SectionHeader eyebrow="Global" title="Titre global" />
           <GlobalTitleFields />
-          <Separator />
-        </>
+          <div className="h-px bg-border" />
+        </div>
       )}
 
+      {/* Extraits */}
       {clips.map((_, index) => (
-        <div
-          key={index}
-          className="flex flex-col gap-4"
-        >
-          <div className="flex justify-between items-center">
-            <CardTitle>Extrait {index + 1}</CardTitle>
+        <div key={index} className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <SectionHeader eyebrow={`Extrait ${index + 1}`} title="Texte & vidéo" />
             {clips.length > 1 && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
+                className="text-muted-foreground hover:text-destructive"
                 onClick={() => dispatch(removeClip(index))}
               >
+                <Trash2Icon className="size-3.5" />
                 Supprimer
               </Button>
             )}
           </div>
-
           <TextStyleFields clipIndex={index} />
           <VideoFields clipIndex={index} />
-
-          {index < clips.length - 1 && <Separator />}
+          {index < clips.length - 1 && <div className="h-px bg-border" />}
         </div>
       ))}
 
-      <Separator />
-
-      <Button
-        variant="outline"
+      <button
         onClick={() => dispatch(addClip())}
+        className="group flex items-center gap-3 w-full py-1 text-muted-foreground hover:text-violet-400 transition-colors"
       >
-        + Ajouter un extrait
-      </Button>
+        <span className="h-px flex-1 border-t border-dashed border-current opacity-30 group-hover:opacity-60 transition-opacity" />
+        <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.18em] uppercase shrink-0">
+          <PlusIcon className="size-3" />
+          Ajouter un extrait
+        </span>
+        <span className="h-px flex-1 border-t border-dashed border-current opacity-30 group-hover:opacity-60 transition-opacity" />
+      </button>
 
-      <Separator />
+      <div className="h-px bg-border" />
 
-      <CardTitle>Paramètres</CardTitle>
-      <RenderSettings />
+      {/* Paramètres rendu */}
+      <div className="flex flex-col gap-4">
+        <SectionHeader eyebrow="Rendu" title="Paramètres" />
+        <RenderSettings />
+      </div>
 
-      <Separator />
+      <div className="h-px bg-border" />
 
       <CheckboxSaveData target="step2" />
 
-      <BillionsClubDialog
-        open={billionsOpen}
-        onOpenChange={setBillionsOpen}
-      />
-
-      <ImportJsonDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-      />
+      <BillionsClubDialog open={billionsOpen} onOpenChange={setBillionsOpen} />
+      <ImportJsonDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent } from "./ui/dialog";
 import { Separator } from "./ui/separator";
 import { useAppDispatch } from "@/store";
 import { setClips } from "@/store/createVideoSlice";
@@ -186,9 +186,15 @@ export default function BillionsClubDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[85dvw] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle>Billions Club Data</DialogTitle>
-        </DialogHeader>
+        <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-px bg-violet-400" />
+              <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">Données</span>
+            </div>
+            <h2 className="text-base font-semibold tracking-tight leading-none">Billions Club</h2>
+          </div>
+        </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] h-[70vh] min-h-0">
           <BillionsClubBrowse
