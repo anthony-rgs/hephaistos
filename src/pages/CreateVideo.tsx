@@ -72,7 +72,6 @@ function getYoutubeCookiesFromExtension(): Promise<string> {
   });
 }
 
-
 const STEP_TITLES = ["Template & mode", "Données & paramètres", "Rendu"];
 
 export default function CreateVideo() {
@@ -241,9 +240,8 @@ export default function CreateVideo() {
     ) : undefined;
 
   return (
-    <section className="flex gap-12 px-12">
+    <section className="relative overflow-hidden flex gap-12 px-12">
       <div className="w-full h-[calc(100vh-3.5rem)] flex flex-col">
-
         {/* Header */}
         <div className="shrink-0 pt-8 pb-5">
           <div className="flex items-center gap-2 mb-1.5">
@@ -299,7 +297,6 @@ export default function CreateVideo() {
       </div>
 
       <div className="flex flex-col h-[calc(100vh-3.5rem)] py-8 shrink-0">
-
         {/* Header */}
         <div className="shrink-0 pb-5">
           <div className="flex items-center gap-2 mb-1.5">
@@ -310,8 +307,13 @@ export default function CreateVideo() {
           </div>
           <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">
             {currentStep === 3
-              ? isDone ? "Rendu final" : isRunning ? "En cours…" : "Rendu"
-              : createVideoState.templateValue.charAt(0).toUpperCase() + createVideoState.templateValue.slice(1)}
+              ? isDone
+                ? "Rendu final"
+                : isRunning
+                  ? "En cours…"
+                  : "Rendu"
+              : createVideoState.templateValue.charAt(0).toUpperCase() +
+                createVideoState.templateValue.slice(1)}
           </h2>
         </div>
 
@@ -321,7 +323,10 @@ export default function CreateVideo() {
         <div className="flex-1 flex items-center justify-center pt-6">
           <div
             className="border border-border rounded-2xl overflow-hidden shrink-0"
-            style={{ height: "calc(100vh - 3.5rem - 4rem - 100px)", aspectRatio: "9/16" }}
+            style={{
+              height: "calc(100vh - 3.5rem - 4rem - 100px)",
+              aspectRatio: "9/16",
+            }}
           >
             {currentStep === 3 && videoUrl ? (
               <video
@@ -337,7 +342,6 @@ export default function CreateVideo() {
             )}
           </div>
         </div>
-
       </div>
     </section>
   );

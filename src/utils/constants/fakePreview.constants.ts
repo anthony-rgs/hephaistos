@@ -3,10 +3,10 @@ import type {
   ClipTitleStyle,
   GlobalTitleData,
 } from "@/store/createVideoSlice";
-import previewMusic from "/images/preview.gif";
-import previewFilm from "/images/preview-film.gif";
-import previewNaruto from "/images/preview-naruto.gif";
-import previewFoot from "/images/preview-foot.gif";
+import previewMusic from "/images/preview.webp";
+import previewFilm from "/images/preview-film.webp";
+import previewNaruto from "/images/preview-naruto.webp";
+import previewFoot from "/images/preview-foot.webp";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

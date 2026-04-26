@@ -27,9 +27,13 @@ import TemplatePreview from "@/components/TemplatePreview";
 import { useAppSelector } from "@/store";
 import { templates } from "@/utils";
 import { FAKE_PREVIEW } from "@/utils/constants/fakePreview.constants";
-import youtubePreview from "/images/preview-youtube.png";
-import configurationPreview from "/images/preview-configuration.png";
-import downloadPreview from "/images/preview-dowload.png";
+import youtubePreviewDark from "/images/preview-youtube-dark.png";
+import youtubePreviewLight from "/images/preview-youtube-light.png";
+import configurationPreviewDark from "/images/preview-configuration-dark.png";
+import configurationPreviewLight from "/images/preview-configuration-light.png";
+import downloadPreviewDark from "/images/preview-download-dark.png";
+import downloadPreviewLight from "/images/preview-download-light.png";
+import { useTheme } from "@/utils/useTheme";
 
 // ── Template Gif Carousel ────────────────────────────────────────────────────
 
@@ -41,7 +45,9 @@ function TemplateGifCarousel({
   const [active, setActive] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onActiveChangeRef = useRef(onActiveChange);
-  useEffect(() => { onActiveChangeRef.current = onActiveChange; }, [onActiveChange]);
+  useEffect(() => {
+    onActiveChangeRef.current = onActiveChange;
+  }, [onActiveChange]);
 
   const [carouselH, setCarouselH] = useState(() =>
     window.innerWidth < 768 ? 280 : 400,
@@ -109,7 +115,10 @@ function TemplateGifCarousel({
           {templates.map((_, i) => (
             <button
               key={i}
-              onClick={() => { goTo(i); startTimer(); }}
+              onClick={() => {
+                goTo(i);
+                startTimer();
+              }}
               className={`h-1.5 rounded-full transition-all ${
                 i === active
                   ? "w-6 bg-foreground"
@@ -191,21 +200,24 @@ const STEPS = [
     title: "Configure tes données",
     description:
       "Remplis les champs. Importe un JSON ou pioche dans une base de données avec toutes les musiques Spotify à plus de 1 milliard d'écoutes. Tous les changements se prévisualisent en temps réel sur la droite.",
-    image: configurationPreview,
+    imageLight: configurationPreviewLight,
+    imageDark: configurationPreviewDark,
   },
   {
     step: "03",
     title: "Ajoute tes sources vidéo",
     description:
       "Colle n'importe quel lien vidéo ou utilise la recherche intégrée pour trouver directement sur YouTube.",
-    image: youtubePreview,
+    imageLight: youtubePreviewLight,
+    imageDark: youtubePreviewDark,
   },
   {
     step: "04",
     title: "Lance le rendu & télécharge",
     description:
       'Un clic sur "Lancer le rendu". Le serveur traite et assemble ta vidéo. Tu suis la progression en direct — si le résultat te plaît, tu télécharges directement depuis l\'app.',
-    image: downloadPreview,
+    imageLight: downloadPreviewLight,
+    imageDark: downloadPreviewDark,
   },
 ];
 
@@ -223,6 +235,7 @@ function StepItem({
   setActiveTemplate: (t: (typeof templates)[0]) => void;
 }) {
   const { ref, visible } = useInView(0.1);
+  const { isDark } = useTheme();
   return (
     <div
       ref={ref}
@@ -261,20 +274,15 @@ function StepItem({
           </div>
         )}
       </div>
-
       <div className="flex-1 flex justify-center">
         {"carousel" in s && s.carousel ? (
           <TemplateGifCarousel onActiveChange={setActiveTemplate} />
-        ) : "image" in s && s.image ? (
+        ) : (
           <img
-            src={s.image}
+            src={isDark ? s.imageLight : s.imageDark}
             alt={s.title}
             className="w-full rounded-2xl border border-border shadow-lg object-cover"
           />
-        ) : (
-          <div className="w-full aspect-video rounded-2xl border border-dashed border-border bg-muted/30 flex items-center justify-center">
-            <span className="text-xs text-muted-foreground">Image à venir</span>
-          </div>
         )}
       </div>
     </div>
@@ -284,6 +292,7 @@ function StepItem({
 // ── Workflow Section (sticky left + horizontal scroll) ─────────────────────────
 
 function WorkflowSection() {
+  const { isDark } = useTheme();
   const [activeTemplate, setActiveTemplate] = useState(templates[0]);
   const sectionRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
@@ -291,7 +300,9 @@ function WorkflowSection() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [tx, setTx] = useState(0);
   const isProgrammaticScrollRef = useRef(false);
-  const programmaticTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const programmaticTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // Mesure la largeur dispo pour les cards
   useEffect(() => {
@@ -336,7 +347,8 @@ function WorkflowSection() {
     isProgrammaticScrollRef.current = true;
     setActiveIdx(i);
     setTx(i * cardWidth);
-    if (programmaticTimeoutRef.current) clearTimeout(programmaticTimeoutRef.current);
+    if (programmaticTimeoutRef.current)
+      clearTimeout(programmaticTimeoutRef.current);
     programmaticTimeoutRef.current = setTimeout(() => {
       isProgrammaticScrollRef.current = false;
     }, 900);
@@ -350,7 +362,9 @@ function WorkflowSection() {
   return (
     <>
       {/* Mobile — layout vertical */}
-      <section className="lg:hidden px-6 py-10 flex flex-col gap-10">
+      <section className="lg:hidden relative px-6 py-10 flex flex-col gap-10 overflow-hidden">
+        <div className="pointer-events-none absolute -top-20 -right-20 w-64 h-64 rounded-full bg-violet-600 blur-[80px] opacity-40" />
+        <div className="pointer-events-none absolute bottom-0 -left-16 w-56 h-56 rounded-full bg-indigo-500 blur-[70px] opacity-30" />
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 mb-1">
             <span className="w-6 h-px bg-violet-400" />
@@ -383,6 +397,10 @@ function WorkflowSection() {
         style={{ height: `${STEPS.length * 120}vh` }}
       >
         <div className="sticky top-14 h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
+          {/* Background glows */}
+          <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full bg-violet-600 blur-[130px] opacity-15" />
+          <div className="pointer-events-none absolute bottom-0 -left-24 w-80 h-80 rounded-full bg-indigo-500 blur-[90px] opacity-25" />
+          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-50 rounded-full bg-blue-600 blur-[120px] opacity-15" />
           {/* ── Top bar : title + step nav ── */}
           <div className="shrink-0 flex items-end justify-between gap-8 px-12 xl:px-16 pt-8 pb-5 border-b border-border/40">
             <div className="flex flex-col gap-0.5">
@@ -483,18 +501,12 @@ function WorkflowSection() {
                   <div className="flex-1 h-[70%] flex items-center justify-center">
                     {"carousel" in s && s.carousel ? (
                       <TemplateGifCarousel onActiveChange={setActiveTemplate} />
-                    ) : "image" in s && s.image ? (
+                    ) : (
                       <img
-                        src={s.image}
+                        src={isDark ? s.imageLight : s.imageDark}
                         alt={s.title}
                         className="max-w-full max-h-full object-contain rounded-2xl"
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-xs text-muted-foreground">
-                          Image à venir
-                        </span>
-                      </div>
                     )}
                   </div>
                 </div>
@@ -649,8 +661,9 @@ function FeaturesSection() {
   return (
     <section
       ref={ref}
-      className={`px-6 py-12 lg:px-12 lg:py-16 flex flex-col gap-10 transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+      className={`relative overflow-hidden px-6 py-12 lg:px-12 lg:py-16 flex flex-col gap-10 transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
     >
+      <div className="pointer-events-none absolute -bottom-16 -right-20 w-72 h-72 rounded-full bg-blue-500 blur-[80px] opacity-25" />
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
         <div className="flex flex-col gap-1">
@@ -748,7 +761,7 @@ const TYPEWRITER_EXAMPLES = [
   "COMBAT NARUTO SASUKE.",
   "TOP FILMS 2026.",
   "MEILLEUR ALBUM SPOTIFY.",
-  "TOP CLIPS RÉCENTS",
+  "TOP CLIPS RÉCENTS.",
   "HIGHLIGHT PSG.",
   "MEILLEURS CLIPS ADÈLE.",
 ];
@@ -989,7 +1002,8 @@ export default function Home() {
       </section>
 
       <Separator />
-      <section className="px-6 py-12 lg:px-12 lg:py-16 flex flex-col gap-10">
+      <section className="relative overflow-hidden px-6 py-12 lg:px-12 lg:py-16 flex flex-col gap-10">
+        <div className="pointer-events-none absolute -top-20 -left-20 w-80 h-80 rounded-full bg-indigo-600 blur-[110px] opacity-15" />
         {/* Header */}
         <FadeIn>
           <div className="flex flex-col gap-1">
