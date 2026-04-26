@@ -16,13 +16,10 @@ import {
   CardFooterCustom,
   CreateVideoSelects,
   CreateVideoSelectDatas,
-  RenderProgress,
+  RenderJobContent,
 } from "@/components";
-import { Card, CardHeader } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import TemplatePreview from "@/components/TemplatePreview";
-import PhoneMockup, { PHONE_CHROME_H } from "@/components/PhoneMockup";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setJob, updateJob } from "@/store/renderSlice";
 import {
@@ -35,7 +32,6 @@ import {
 } from "@/utils/api/render";
 import { DownloadIcon } from "lucide-react";
 import { getCookiesStatus, postCookies } from "@/utils/api/auth";
-import { QRCodeSVG } from "qrcode.react";
 
 // ─── Extension Chrome ─────────────────────────────────────────────────────────
 
@@ -76,8 +72,6 @@ function getYoutubeCookiesFromExtension(): Promise<string> {
   });
 }
 
-// py-12 = 48px * 2 sides = 96px vertical padding on the parent
-const screenH = `calc(100vh - 96px - ${PHONE_CHROME_H}px)`;
 
 const STEP_TITLES = ["Template & mode", "Données & paramètres", "Rendu"];
 
@@ -248,75 +242,87 @@ export default function CreateVideo() {
 
   return (
     <section className="flex gap-12 px-12">
-      <div className="w-full h-[calc(100vh-3.5rem)] py-12">
-        <Card className="h-full">
-          <CardHeader className="justify-center">
-            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-              {STEP_TITLES[currentStep - 1]}
-            </h3>
-          </CardHeader>
+      <div className="w-full h-[calc(100vh-3.5rem)] flex flex-col">
 
-          <Separator />
-
-          <div className="overflow-scroll p-4 pt-0 h-full flex flex-col gap-4">
-            {currentStep === 1 && <CreateVideoSelects />}
-            {currentStep === 2 && (
-              <>
-                <CreateVideoSelectDatas />
-                {launchError && (
-                  <p className="text-sm text-destructive">{launchError}</p>
-                )}
-              </>
-            )}
-            {currentStep === 3 && <RenderProgress />}
-            {currentStep === 3 &&
-              isDone &&
-              job?.job_id &&
-              (() => {
-                const token = localStorage.getItem("token") ?? "";
-                const url = `${window.location.origin}/render/${job.job_id}?token=${token}`;
-                return (
-                  <div className="flex flex-col items-center gap-2 pt-2">
-                    <p className="text-xs text-muted-foreground">
-                      Scanner pour voir la vidéo sur mobile
-                    </p>
-                    <div className="rounded-lg border border-border p-3 bg-white">
-                      <QRCodeSVG
-                        value={url}
-                        size={140}
-                      />
-                    </div>
-                  </div>
-                );
-              })()}
+        {/* Header */}
+        <div className="shrink-0 pt-8 pb-5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-4 h-px bg-violet-400" />
+            <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+              Étape {currentStep}/3
+            </span>
           </div>
+          <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">
+            {STEP_TITLES[currentStep - 1]}
+          </h2>
+        </div>
 
-          <CardFooterCustom
-            currentStep={currentStep}
-            onPrev={handlePrev}
-            onNext={handleNext}
-            nextLabel={
-              currentStep === 2
-                ? isFetchingCookies
-                  ? "Récupération des cookies YouTube..."
-                  : "Lancer le rendu"
-                : undefined
-            }
-            nextDisabled={
-              (currentStep === 2 && !step2Valid) ||
-              isLaunching ||
-              isFetchingCookies
-            }
-            showPrev={currentStep > 1}
-            leftAction={step4Left}
-            rightAction={step4Right}
-          />
-        </Card>
+        <div className="h-px bg-border shrink-0" />
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar py-6 flex flex-col gap-4">
+          {currentStep === 1 && <CreateVideoSelects />}
+          {currentStep === 2 && (
+            <>
+              <CreateVideoSelectDatas />
+              {launchError && (
+                <p className="text-sm text-destructive">{launchError}</p>
+              )}
+            </>
+          )}
+          {currentStep === 3 && <RenderJobContent />}
+        </div>
+
+        <div className="h-px bg-border shrink-0" />
+
+        {/* Bottom bar */}
+        <CardFooterCustom
+          currentStep={currentStep}
+          onPrev={handlePrev}
+          onNext={handleNext}
+          nextLabel={
+            currentStep === 2
+              ? isFetchingCookies
+                ? "Récupération des cookies..."
+                : "Lancer le rendu"
+              : undefined
+          }
+          nextDisabled={
+            (currentStep === 2 && !step2Valid) ||
+            isLaunching ||
+            isFetchingCookies
+          }
+          showPrev={currentStep > 1}
+          leftAction={step4Left}
+          rightAction={step4Right}
+        />
       </div>
 
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] py-12">
-        <PhoneMockup>
-          <div style={{ height: screenH, aspectRatio: "9/16" }}>
+      <div className="flex flex-col h-[calc(100vh-3.5rem)] py-8 shrink-0">
+
+        {/* Header */}
+        <div className="shrink-0 pb-5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-4 h-px bg-violet-400" />
+            <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+              Aperçu
+            </span>
+          </div>
+          <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">
+            {currentStep === 3
+              ? isDone ? "Rendu final" : isRunning ? "En cours…" : "Rendu"
+              : createVideoState.templateValue.charAt(0).toUpperCase() + createVideoState.templateValue.slice(1)}
+          </h2>
+        </div>
+
+        <div className="h-px bg-border shrink-0" />
+
+        {/* Preview */}
+        <div className="flex-1 flex items-center justify-center pt-6">
+          <div
+            className="border border-border rounded-2xl overflow-hidden shrink-0"
+            style={{ height: "calc(100vh - 3.5rem - 4rem - 100px)", aspectRatio: "9/16" }}
+          >
             {currentStep === 3 && videoUrl ? (
               <video
                 src={videoUrl}
@@ -330,7 +336,8 @@ export default function CreateVideo() {
               <TemplatePreview mode={currentStep === 1 ? "fake" : "live"} />
             )}
           </div>
-        </PhoneMockup>
+        </div>
+
       </div>
     </section>
   );

@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { RenderProgress } from "@/components";
-import { CardFooter } from "@/components/ui/card";
-import PhoneMockup, { PHONE_CHROME_H } from "@/components/PhoneMockup";
+import { RenderJobContent } from "@/components";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setJob, updateJob } from "@/store/renderSlice";
 import {
@@ -15,26 +11,23 @@ import {
   getVideoObjectUrl,
   downloadVideo,
 } from "@/utils/api/render";
-import { DownloadIcon } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
-
-const screenH = `calc(100vh - 96px - ${PHONE_CHROME_H}px)`;
+import { DownloadIcon, FilmIcon } from "lucide-react";
 
 export default function LastJob() {
   const dispatch = useAppDispatch();
   const job = useAppSelector((s) => s.render.job);
-
   const navigate = useNavigate();
+
   const [error, setError] = useState<string | null>(null);
   const [noJob, setNoJob] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
 
   const isRunning =
-    job !== null && ["pending", "downloading", "processing"].includes(job.status);
+    job !== null &&
+    ["pending", "downloading", "processing"].includes(job.status);
   const isDone = job?.status === "done";
 
-  // Charge le dernier job + lance le stream
   useEffect(() => {
     if (window.innerWidth < 1024) return;
     let cancelled = false;
@@ -58,7 +51,6 @@ export default function LastJob() {
     };
   }, [dispatch]);
 
-  // Charge la vidéo quand done
   useEffect(() => {
     if (job?.status === "done" && job.job_id) {
       getVideoObjectUrl(job.job_id)
@@ -67,7 +59,6 @@ export default function LastJob() {
     }
   }, [job?.status, job?.job_id]);
 
-  // Libère le blob URL
   useEffect(() => {
     return () => {
       if (videoUrl) URL.revokeObjectURL(videoUrl);
@@ -83,89 +74,145 @@ export default function LastJob() {
     if (jobId) cancelRender(jobId).catch(() => null);
   };
 
-  const leftAction = isRunning ? (
-    <Button variant="destructive" onClick={handleCancel}>
-      Annuler
-    </Button>
-  ) : (
-    <Button variant="ghost" onClick={() => navigate("/create-video")}>
-      Créer une vidéo
-    </Button>
-  );
-
-  const rightAction =
-    isDone && job?.job_id ? (
-      <Button onClick={() => downloadVideo(job.job_id).catch((err) => console.error("Download failed:", err))}>
-        <DownloadIcon className="size-4" />
-        Télécharger
-      </Button>
-    ) : (
-      <div className="w-20" />
-    );
-
   return (
     <section className="flex gap-12 px-12">
-      <div className="w-full h-[calc(100vh-3.5rem)] py-12">
-        <Card className="h-full">
-          <CardHeader className="justify-center">
-            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-              Dernier rendu
-            </h3>
-          </CardHeader>
-
-          <Separator />
-
-          <div className="overflow-scroll p-4 pt-0 h-full flex flex-col gap-4">
-            {noJob ? (
-              <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-                <p className="text-muted-foreground">Aucun rendu en mémoire.<br />Lance d'abord une création !</p>
-                <Button onClick={() => navigate("/create-video")}>
-                  Créer une vidéo
-                </Button>
-              </div>
-            ) : error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : (
-              <>
-                {job && (
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold">{job.title}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(job.created_at).toLocaleString("fr-FR", {
-                        dateStyle: "long",
-                        timeStyle: "short",
-                      })}
-                    </span>
-                  </div>
-                )}
-                <RenderProgress />
-                {isDone && job?.job_id && (() => {
-                  const token = localStorage.getItem("token") ?? "";
-                  const url = `${window.location.origin}/render/${job.job_id}?token=${token}`;
-                  return (
-                    <div className="flex flex-col items-center gap-2 pt-2">
-                      <p className="text-xs text-muted-foreground">Scanner pour voir la vidéo sur mobile</p>
-                      <div className="rounded-lg border border-border p-3 bg-white">
-                        <QRCodeSVG value={url} size={140} />
-                      </div>
-                    </div>
-                  );
-                })()}
-              </>
-            )}
+      {/* ── Panneau gauche ── */}
+      <div className="w-full h-[calc(100vh-3.5rem)] flex flex-col">
+        {/* Header */}
+        <div className="shrink-0 pt-8 pb-5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-4 h-px bg-violet-400" />
+            <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+              Rendu
+            </span>
           </div>
+          <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">
+            Dernier rendu
+          </h2>
+        </div>
 
-          <CardFooter className="flex justify-between">
-            {leftAction}
-            {rightAction}
-          </CardFooter>
-        </Card>
+        <div className="h-px bg-border shrink-0" />
+
+        {/* Contenu scrollable */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar py-6 flex flex-col gap-4">
+          {noJob ? (
+            <div className="flex flex-col items-center justify-center h-full gap-6 text-center px-8">
+              <div className="size-16 rounded-2xl bg-violet-400/10 border border-violet-400/20 flex items-center justify-center">
+                <FilmIcon className="size-7 text-violet-400" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-center gap-2 mb-0.5">
+                  <span className="w-4 h-px bg-violet-400" />
+                  <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+                    Vide
+                  </span>
+                  <span className="w-4 h-px bg-violet-400" />
+                </div>
+                <p className="font-semibold tracking-tight">
+                  Aucun rendu en mémoire
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Lance d'abord une création pour voir ta vidéo ici.
+                </p>
+              </div>
+              <Button onClick={() => navigate("/create-video")}>
+                Créer une vidéo
+              </Button>
+            </div>
+          ) : error ? (
+            <p className="text-sm text-destructive">{error}</p>
+          ) : (
+            <RenderJobContent showMeta />
+          )}
+        </div>
+
+        <div className="h-px bg-border shrink-0" />
+
+        {/* Footer */}
+        <div className="flex items-center justify-between py-4 shrink-0">
+          {/* Left action */}
+          {isRunning ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleCancel}
+            >
+              Annuler
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/create-video")}
+            >
+              Créer une vidéo
+            </Button>
+          )}
+
+          {/* Center — status badge */}
+          {job && (
+            <div className="flex items-center gap-2">
+              <span
+                className={`size-1.5 rounded-full shrink-0 ${
+                  isDone
+                    ? "bg-green-500"
+                    : isRunning
+                      ? "bg-violet-400 animate-pulse"
+                      : "bg-muted-foreground/40"
+                }`}
+              />
+              <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground">
+                {isDone ? "Terminé" : isRunning ? "En cours" : job.status}
+              </span>
+            </div>
+          )}
+
+          {/* Right action */}
+          {isDone && job?.job_id ? (
+            <Button
+              size="sm"
+              onClick={() =>
+                downloadVideo(job.job_id).catch((err) =>
+                  console.error("Download failed:", err),
+                )
+              }
+            >
+              <DownloadIcon className="size-3.5" />
+              Télécharger
+            </Button>
+          ) : (
+            <div className="w-22.5" />
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] py-12">
-        <PhoneMockup>
-          <div style={{ height: screenH, aspectRatio: "9/16" }}>
-            {videoUrl ? (
+      {/* ── Panneau droit — aperçu ── */}
+      <div className="flex flex-col h-[calc(100vh-3.5rem)] py-8 shrink-0">
+        {/* Header */}
+        <div className="shrink-0 pb-5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-4 h-px bg-violet-400" />
+            <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+              Aperçu
+            </span>
+          </div>
+          <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">
+            {isDone ? "Rendu final" : isRunning ? "En cours…" : "Rendu"}
+          </h2>
+        </div>
+
+        <div className="h-px bg-border shrink-0" />
+
+        {/* Preview */}
+        <div className="flex-1 flex items-center justify-center pt-6">
+          <div
+            className="border border-border rounded-2xl overflow-hidden shrink-0"
+            style={{
+              height: "calc(100vh - 3.5rem - 4rem - 100px)",
+              aspectRatio: "9/16",
+            }}
+          >
+            {isDone && videoUrl ? (
               <video
                 src={videoUrl}
                 autoPlay
@@ -174,9 +221,20 @@ export default function LastJob() {
                 controls
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
-            ) : null}
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
+                <div className="w-full h-full rounded-xl border border-dashed border-border flex flex-col items-center justify-center gap-2">
+                  <FilmIcon className="size-5 text-muted-foreground" />
+                  <p className="text-[10px] font-medium text-muted-foreground text-center leading-relaxed">
+                    La vidéo apparaîtra
+                    <br />
+                    ici une fois rendue
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        </PhoneMockup>
+        </div>
       </div>
     </section>
   );
