@@ -1142,8 +1142,7 @@ export default function Home() {
           >
             Anthony Ringressi
           </a>
-          <span className="text-muted-foreground/30">·</span>
-          <span>avec son forgeron IA préféré</span>
+          <span>et Claude le bg</span>
         </div>
       </footer>
     </div>
