@@ -3,10 +3,10 @@ import type {
   ClipTitleStyle,
   GlobalTitleData,
 } from "@/store/createVideoSlice";
-import previewMusic from "@/assets/images/preview.gif";
-import previewFilm from "@/assets/images/preview-film.gif";
-import previewNaruto from "@/assets/images/preview-naruto.gif";
-import previewFoot from "@/assets/images/preview-foot.gif";
+import previewMusic from "/images/preview.gif";
+import previewFilm from "/images/preview-film.gif";
+import previewNaruto from "/images/preview-naruto.gif";
+import previewFoot from "/images/preview-foot.gif";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -75,7 +75,7 @@ export const FAKE_PREVIEW: Record<string, FakePreviewData> = {
     globalTitle: {
       first: "TOP 5 The Weeknd's",
       second: "Most Streamed Songs",
-      titleStyle: { border: 3, color: "0xFFFFFF", font: "dejavu", size: 60 },
+      titleStyle: { border: 2, color: "0xFFFFFF", font: "dejavu", size: 60 },
       subtitle: "(on Spotify)",
       subtitleStyle: { border: 0, color: "0xC9C9C9", font: "dejavu", size: 36 },
     },
@@ -127,7 +127,7 @@ export const FAKE_PREVIEW: Record<string, FakePreviewData> = {
     globalTitle: {
       first: "Les meilleures scènes",
       second: "de Avengers Infinity War",
-      titleStyle: { border: 3, color: "0xFFFFFF", font: "dejavu", size: 60 },
+      titleStyle: { border: 2, color: "0xFFFFFF", font: "dejavu", size: 60 },
       subtitle: "(partie 1)",
       subtitleStyle: { border: 0, color: "0xC9C9C9", font: "dejavu", size: 36 },
     },
@@ -161,9 +161,9 @@ export const FAKE_PREVIEW: Record<string, FakePreviewData> = {
       {
         id: "1.",
         idStyle: ID,
-        title: "Cristiano Ronaldo 🐐",
+        title: "Benjamin Pavard ☄️",
         titleStyle: { ...TITLE_CENTER, size: 70 },
-        subtitle: "Réal Madrid vs Juventus",
+        subtitle: "France - Argentine",
         subtitleStyle: SUB_CENTER,
       },
     ],

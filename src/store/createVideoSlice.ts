@@ -91,6 +91,7 @@ export interface CreateVideoState {
   teaserTop: boolean;
   globalTitle: GlobalTitleData;
   clips: ClipData[];
+  defaultDuration: number;
   background: string; // "video" | "0xRRGGBB"
   videoMargin: number;
   highlightPreviewActiveIndex: number | null;
@@ -136,7 +137,7 @@ function makeClip(index: number): ClipData {
 const defaultGlobalTitle: GlobalTitleData = {
   first: "",
   second: "",
-  titleStyle: { border: 3, color: "0xFFFFFF", font: "dejavu", size: 60 },
+  titleStyle: { border: 2, color: "0xFFFFFF", font: "dejavu", size: 60 },
   subtitle: "",
   subtitleStyle: { border: 0, color: "0xC9C9C9", font: "dejavu", size: 36 },
 };
@@ -150,6 +151,7 @@ const initialState: CreateVideoState = {
   teaserTop: false,
   globalTitle: { ...defaultGlobalTitle },
   clips: [makeClip(0)],
+  defaultDuration: 5,
   background: "video",
   videoMargin: 0,
   spacing: 60,
@@ -196,7 +198,10 @@ const createVideoSlice = createSlice({
     setSaveStep2Checked(state, action: PayloadAction<boolean>) {
       state.saveStep2Checked = action.payload;
     },
-    applyTemplateDefaults(state, action: PayloadAction<ApplyTemplateDefaultsPayload>) {
+    applyTemplateDefaults(
+      state,
+      action: PayloadAction<ApplyTemplateDefaultsPayload>,
+    ) {
       const d = action.payload;
       state.background = d.background;
       state.videoMargin = d.videoMargin;
@@ -224,7 +229,15 @@ const createVideoSlice = createSlice({
       state.globalTitle = { ...state.globalTitle, ...action.payload };
     },
     addClip(state) {
-      state.clips.push(makeClip(state.clips.length));
+      const clip = makeClip(state.clips.length);
+      clip.duration = state.defaultDuration;
+      state.clips.push(clip);
+    },
+    setAllDurations(state, action: PayloadAction<number>) {
+      state.defaultDuration = action.payload;
+      state.clips.forEach((c) => {
+        c.duration = action.payload;
+      });
     },
     removeClip(state, action: PayloadAction<number>) {
       state.clips.splice(action.payload, 1);
@@ -266,7 +279,10 @@ const createVideoSlice = createSlice({
     ) {
       state.highlightActive = { ...state.highlightActive, ...action.payload };
     },
-    setHighlightPreviewActiveIndex(state, action: PayloadAction<number | null>) {
+    setHighlightPreviewActiveIndex(
+      state,
+      action: PayloadAction<number | null>,
+    ) {
       state.highlightPreviewActiveIndex = action.payload;
     },
   },
@@ -285,6 +301,7 @@ export const {
   removeClip,
   updateClip,
   setClips,
+  setAllDurations,
   setBackground,
   setVideoMargin,
   setSpacing,
