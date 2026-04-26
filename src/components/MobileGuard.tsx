@@ -1,6 +1,9 @@
-import { MonitorIcon } from "lucide-react";
+import { MonitorIcon, ArrowLeftIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "./ui/button";
 
 export default function MobileGuard() {
+  const navigate = useNavigate();
   return (
     <div className="fixed inset-0 z-60 flex flex-col items-center justify-center bg-background px-8 text-center overflow-hidden lg:hidden">
 
@@ -41,6 +44,11 @@ export default function MobileGuard() {
           <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
           Disponible sur écran ≥ 1024px
         </div>
+
+        <Button variant="outline" onClick={() => navigate("/")}>
+          <ArrowLeftIcon className="size-3.5" />
+          Retour à l'accueil
+        </Button>
 
       </div>
     </div>

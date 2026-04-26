@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { logout } from "@/store/authSlice";
 import { useTheme } from "@/utils/useTheme";
 
-export default function Navbar() {
+export default function Navbar({ showBanner = false, bannerIn = false }: { showBanner?: boolean; bannerIn?: boolean }) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,7 +32,7 @@ export default function Navbar() {
     }`;
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 z-50 flex items-center px-6 lg:px-10 bg-background/90 backdrop-blur-sm border-b border-border/50">
+    <header className={`fixed left-0 right-0 h-14 z-40 flex items-center px-6 lg:px-10 bg-background/90 backdrop-blur-sm border-b border-border/50 transition-[top] duration-300 ease-out ${showBanner && bannerIn ? "top-10" : "top-0"}`}>
 
       {/* Logo */}
       <NavLink to="/" onClick={handleLogoClick} className="flex items-center gap-1.5 shrink-0">
@@ -45,11 +45,9 @@ export default function Navbar() {
       {/* Nav links */}
       <nav className="hidden lg:flex items-center gap-7 ml-10">
         <NavLink to="/" end className={linkClass}>Accueil</NavLink>
+        <NavLink to="/create-video" className={linkClass}>Créer</NavLink>
         {token && (
-          <>
-            <NavLink to="/create-video" className={linkClass}>Créer</NavLink>
-            <NavLink to="/last-job" className={linkClass}>Dernier rendu</NavLink>
-          </>
+          <NavLink to="/last-job" className={linkClass}>Dernier rendu</NavLink>
         )}
         {!token && (
           <NavLink to="/logging" className={linkClass}>Connexion</NavLink>

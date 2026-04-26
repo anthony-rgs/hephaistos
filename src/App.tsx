@@ -26,8 +26,8 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/logging" element={<Logging />} />
+            <Route path="/create-video" element={<CreateVideo />} />
             <Route element={<ProtectedRoute />}>
-              <Route path="/create-video" element={<CreateVideo />} />
               <Route path="/last-job" element={<LastJob />} />
             </Route>
           </Route>

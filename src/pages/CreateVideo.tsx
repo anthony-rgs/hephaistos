@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   saveStep1,
   saveTemplateConfig,
@@ -30,7 +31,7 @@ import {
   getVideoObjectUrl,
   downloadVideo,
 } from "@/utils/api/render";
-import { DownloadIcon } from "lucide-react";
+import { DownloadIcon, PauseIcon, PlayIcon } from "lucide-react";
 import { getCookiesStatus, postCookies } from "@/utils/api/auth";
 
 // ─── Extension Chrome ─────────────────────────────────────────────────────────
@@ -78,6 +79,72 @@ export default function CreateVideo() {
   const dispatch = useAppDispatch();
   const createVideoState = useAppSelector((s) => s.createVideo);
   const job = useAppSelector((s) => s.render.job);
+  const token = useAppSelector((s) => s.auth.token);
+  const navigate = useNavigate();
+  const [previewPaused, setPreviewPaused] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const frozenSrcs = useRef<Map<HTMLImageElement, string>>(new Map());
+
+  const freezeImg = (img: HTMLImageElement) => {
+    if (img.src.startsWith("data:")) return;
+    const liveSrc = img.src;
+
+    const doFreeze = () => {
+      if (img.src !== liveSrc) return; // src changed while waiting for load
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d")?.drawImage(img, 0, 0);
+      frozenSrcs.current.set(img, liveSrc);
+      try { img.src = canvas.toDataURL("image/png"); } catch { /* cross-origin */ }
+    };
+
+    if (img.complete && img.naturalWidth > 0) {
+      doFreeze();
+    } else {
+      img.addEventListener("load", doFreeze, { once: true });
+    }
+  };
+
+  const togglePause = () => {
+    if (!previewPaused) {
+      previewRef.current?.querySelectorAll("img").forEach(freezeImg);
+    } else {
+      frozenSrcs.current.clear();
+      setPreviewKey((k) => k + 1);
+    }
+    setPreviewPaused((p) => !p);
+  };
+
+  useEffect(() => {
+    if (!previewPaused || !previewRef.current) return;
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "attributes" && mutation.attributeName === "src") {
+          const img = mutation.target as HTMLImageElement;
+          if (!img.src.startsWith("data:")) freezeImg(img);
+        }
+        if (mutation.type === "childList") {
+          mutation.addedNodes.forEach((node) => {
+            if (node instanceof HTMLImageElement) freezeImg(node);
+            else if (node instanceof Element) node.querySelectorAll("img").forEach((img) => freezeImg(img as HTMLImageElement));
+          });
+          mutation.removedNodes.forEach((node) => {
+            if (node instanceof HTMLImageElement) frozenSrcs.current.delete(node);
+            else if (node instanceof Element) node.querySelectorAll("img").forEach((img) => frozenSrcs.current.delete(img as HTMLImageElement));
+          });
+        }
+      }
+    });
+    observer.observe(previewRef.current, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["src"],
+    });
+    return () => observer.disconnect();
+  }, [previewPaused]);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isLaunching, setIsLaunching] = useState(false);
@@ -239,9 +306,11 @@ export default function CreateVideo() {
       )
     ) : undefined;
 
+  const colH = token ? "h-[calc(100vh-3.5rem)]" : "h-[calc(100vh-6rem)]";
+
   return (
     <section className="relative overflow-hidden flex gap-12 px-12">
-      <div className="w-full h-[calc(100vh-3.5rem)] flex flex-col">
+      <div className={`w-full ${colH} flex flex-col`}>
         {/* Header */}
         <div className="shrink-0 pt-8 pb-5">
           <div className="flex items-center gap-2 mb-1.5">
@@ -292,11 +361,15 @@ export default function CreateVideo() {
           }
           showPrev={currentStep > 1}
           leftAction={step4Left}
-          rightAction={step4Right}
+          rightAction={
+            !token && currentStep === 2
+              ? <Button onClick={() => navigate("/logging")}>Se connecter</Button>
+              : step4Right
+          }
         />
       </div>
 
-      <div className="flex flex-col h-[calc(100vh-3.5rem)] py-8 shrink-0">
+      <div className={`flex flex-col ${colH} py-8 shrink-0`}>
         {/* Header */}
         <div className="shrink-0 pb-5">
           <div className="flex items-center gap-2 mb-1.5">
@@ -322,9 +395,9 @@ export default function CreateVideo() {
         {/* Preview */}
         <div className="flex-1 flex items-center justify-center pt-6">
           <div
-            className="border border-border rounded-2xl overflow-hidden shrink-0"
+            className="relative group border border-border rounded-2xl overflow-hidden shrink-0"
             style={{
-              height: "calc(100vh - 3.5rem - 4rem - 100px)",
+              height: token ? "calc(100vh - 3.5rem - 4rem - 100px)" : "calc(100vh - 6rem - 4rem - 100px)",
               aspectRatio: "9/16",
             }}
           >
@@ -338,7 +411,20 @@ export default function CreateVideo() {
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             ) : (
-              <TemplatePreview mode={currentStep === 1 ? "fake" : "live"} />
+              <div ref={previewRef} className={`w-full h-full ${previewPaused ? "preview-paused" : ""}`}>
+                <TemplatePreview key={previewKey} mode={currentStep === 1 ? "fake" : "live"} />
+              </div>
+            )}
+            {!(currentStep === 3 && videoUrl) && (
+              <button
+                onClick={togglePause}
+                className="absolute bottom-3 right-3 size-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/70"
+              >
+                {previewPaused
+                  ? <PlayIcon className="size-3.5 text-white" />
+                  : <PauseIcon className="size-3.5 text-white" />
+                }
+              </button>
             )}
           </div>
         </div>

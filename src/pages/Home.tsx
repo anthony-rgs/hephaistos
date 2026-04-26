@@ -529,7 +529,13 @@ const FEATURE_GROUPS = [
         icon: LinkIcon,
         label: "Tout lien vidéo",
         description:
-          "YouTube, Twitch, ou n'importe quelle URL compatible. Pas de restriction de plateforme.",
+          "Colle n'importe quelle URL vidéo compatible yt-dlp. YouTube en priorité, mais pas uniquement.",
+      },
+      {
+        icon: VideoIcon,
+        label: "Recherche YouTube",
+        description:
+          "Recherche directement sur YouTube depuis l'app sans quitter la page. Sélectionne et ajoute un clip en un clic.",
       },
       {
         icon: FileJsonIcon,
@@ -541,13 +547,7 @@ const FEATURE_GROUPS = [
         icon: DatabaseIcon,
         label: "Billions Club",
         description:
-          "Base de données intégrée de toutes les musiques dépassant 1 milliard de streams sur Spotify. Recherche par titre, artiste ou album.",
-      },
-      {
-        icon: LayersIcon,
-        label: "Multi-clips",
-        description:
-          "Autant de clips que tu veux. Chaque extrait a ses propres réglages de style, durée et point de départ.",
+          "Base de données intégrée des musiques dépassant 1 milliard de streams sur Spotify. Recherche par titre, artiste ou album.",
       },
     ],
   },
@@ -564,19 +564,19 @@ const FEATURE_GROUPS = [
         icon: PaletteIcon,
         label: "Couleurs & bordures",
         description:
-          "Colorpicker ou saisie hexadécimale pour chaque texte. Épaisseur de bordure réglable indépendamment.",
+          "Colorpicker ou saisie hexadécimale pour chaque texte. Épaisseur de bordure réglable indépendamment sur titre et sous-titre.",
       },
       {
         icon: WandIcon,
         label: "5 animations",
         description:
-          "Aucune, fondu, machine à écrire, glissement gauche, glissement bas. Par titre ou sous-titre, avec aperçu live.",
+          "Aucune, fondu, machine à écrire, glissement gauche, glissement bas — applicables indépendamment au titre et sous-titre.",
       },
       {
         icon: AlignLeftIcon,
         label: "Position du texte",
         description:
-          "Aligné à gauche ou centré. Applicable individuellement ou à tous les clips d'un coup.",
+          "Aligné à gauche ou centré. Applicable clip par clip ou à tous en un clic.",
       },
     ],
   },
@@ -584,10 +584,10 @@ const FEATURE_GROUPS = [
     category: "Paramètres rendu",
     items: [
       {
-        icon: VideoIcon,
+        icon: LayersIcon,
         label: "Fond personnalisable",
         description:
-          "Vidéo floutée, blanc, noir ou couleur custom via colorpicker. Visible en temps réel dans la prévisualisation.",
+          "Vidéo floutée, blanc, noir ou couleur custom via colorpicker. Chaque changement est visible en temps réel dans la prévisualisation.",
       },
       {
         icon: SlidersHorizontalIcon,
@@ -599,13 +599,13 @@ const FEATURE_GROUPS = [
         icon: SparklesIcon,
         label: "Transition douce",
         description:
-          "Transition animée entre chaque clip. Durée configurable entre 0.1s et 2s.",
+          "Fondu enchaîné entre chaque clip. Activable par toggle, durée configurable de 0.1s à 2s.",
       },
       {
         icon: DropletIcon,
         label: "Filigrane",
         description:
-          "Texte en bas à gauche de la vidéo. Police, taille, couleur et opacité configurables.",
+          "Texte watermark en bas de la vidéo. Police, taille, couleur et opacité configurables.",
       },
     ],
   },
@@ -613,16 +613,10 @@ const FEATURE_GROUPS = [
     category: "Prévisualisation",
     items: [
       {
-        icon: BookmarkIcon,
-        label: "Sauvegarde des paramètres",
-        description:
-          "Enregistre ton template, ton mode et tous tes réglages de style par défaut. Ils sont restaurés automatiquement à chaque nouvelle session.",
-      },
-      {
         icon: SmartphoneIcon,
-        label: "Mockup iPhone live",
+        label: "Preview 9:16 live",
         description:
-          "Chaque modification est reflétée instantanément dans un vrai rendu CSS du contenu final en 1080×1920.",
+          "Chaque modification est reflétée instantanément dans un rendu CSS fidèle du résultat final en 1080×1920.",
       },
       {
         icon: SparklesIcon,
@@ -631,10 +625,16 @@ const FEATURE_GROUPS = [
           "Simule l'animation de mise en avant clip par clip dans la preview, du dernier vers le premier.",
       },
       {
+        icon: BookmarkIcon,
+        label: "Sauvegarde des paramètres",
+        description:
+          "Template, mode et réglages de style sont sauvegardés automatiquement et restaurés à chaque session.",
+      },
+      {
         icon: QrCodeIcon,
         label: "QR code mobile",
         description:
-          "Une fois le rendu terminé, un QR code s'affiche. Scanne-le pour voir la vidéo directement sur ton téléphone et la télécharger dans ta galerie en un tap.",
+          "Une fois le rendu terminé, un QR code s'affiche. Scanne-le pour voir et télécharger la vidéo directement depuis ton téléphone.",
       },
     ],
   },
@@ -800,6 +800,10 @@ function useTypewriter(lines: string[]) {
 export default function Home() {
   const navigate = useNavigate();
   const token = useAppSelector((s) => s.auth.token);
+  const isMobileSafari =
+    /iP(hone|ad|od)/.test(navigator.userAgent) &&
+    /WebKit/.test(navigator.userAgent) &&
+    !/CriOS|FxiOS|OPiOS/.test(navigator.userAgent);
   const { text: twText, typing: twTyping } = useTypewriter(TYPEWRITER_EXAMPLES);
 
   // Parallax orbs
@@ -845,7 +849,7 @@ export default function Home() {
           style={heroAnim(0)}
           className="relative z-10 mb-6 lg:mb-8"
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-400/10 px-3 lg:px-4 py-1.5 text-[10px] font-bold tracking-[0.15em] lg:tracking-[0.2em] text-violet-300 uppercase">
+          <span className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-400/10 px-3 lg:px-4 py-1.5 text-[10px] font-bold tracking-[0.15em] lg:tracking-[0.2em] text-violet-400 uppercase">
             <span className="size-1.5 rounded-full bg-violet-400 animate-pulse shrink-0" />
             <span className="hidden sm:inline">
               GÉNÉRATION AUTOMATISÉE DE VIDÉOS
@@ -960,7 +964,7 @@ export default function Home() {
 
         <FadeIn className="relative z-10 flex flex-col items-center text-center gap-8">
           {/* Eyebrow */}
-          <span className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-400/10 px-4 py-1.5 text-[10px] font-bold tracking-[0.2em] text-violet-300 uppercase">
+          <span className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-400/10 px-4 py-1.5 text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
             <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
             Prêt à créer ?
           </span>
@@ -1073,7 +1077,7 @@ export default function Home() {
                     </div>
                     <a
                       href={s.repo}
-                      target="_blank"
+                      target={isMobileSafari ? "_self" : "_blank"}
                       rel="noopener noreferrer"
                       className="shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.15em] uppercase border border-border rounded-full px-3 py-1.5 hover:border-violet-400/40 hover:text-violet-400 transition-colors duration-200 mt-1"
                     >
@@ -1130,9 +1134,14 @@ export default function Home() {
         {/* Credits */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span>Développé par</span>
-          <span className="font-semibold text-foreground">
+          <a
+            href="https://www.linkedin.com/in/anthony-ringressi/"
+            target={isMobileSafari ? "_self" : "_blank"}
+            rel="noopener noreferrer"
+            className="font-semibold text-foreground border-b border-foreground/30 hover:border-foreground transition-colors duration-200"
+          >
             Anthony Ringressi
-          </span>
+          </a>
           <span className="text-muted-foreground/30">·</span>
           <span>avec son forgeron IA préféré</span>
         </div>
