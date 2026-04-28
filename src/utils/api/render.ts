@@ -2,15 +2,11 @@ import type { AppDispatch } from "@/store";
 import { updateJob } from "@/store/renderSlice";
 import type { RenderJob } from "@/store/renderSlice";
 import type { CreateVideoState } from "@/store/createVideoSlice";
+import { fetchAuth } from "./http";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8001";
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 // ─── Body builder ─────────────────────────────────────────────────────────────
 
@@ -37,9 +33,7 @@ export function buildRenderBody(state: CreateVideoState): object {
 // ─── GET /jobs/last ───────────────────────────────────────────────────────────
 
 export async function getLastJob(): Promise<RenderJob> {
-  const res = await fetch(`${BASE_URL}/jobs/last`, {
-    headers: authHeaders(),
-  });
+  const res = await fetchAuth(`${BASE_URL}/jobs/last`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw Object.assign(new Error("No last job"), { status: res.status, detail: err });
@@ -50,9 +44,9 @@ export async function getLastJob(): Promise<RenderJob> {
 // ─── POST /jobs/render ────────────────────────────────────────────────────────
 
 export async function startRender(body: object): Promise<RenderJob> {
-  const res = await fetch(`${BASE_URL}/jobs/render`, {
+  const res = await fetchAuth(`${BASE_URL}/jobs/render`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
@@ -75,8 +69,7 @@ export function subscribeToJob(jobId: string, dispatch: AppDispatch): () => void
 
   (async () => {
     try {
-      const res = await fetch(`${BASE_URL}/jobs/${jobId}/stream`, {
-        headers: authHeaders(),
+      const res = await fetchAuth(`${BASE_URL}/jobs/${jobId}/stream`, {
         signal: controller.signal,
       });
 
@@ -119,9 +112,8 @@ export function subscribeToJob(jobId: string, dispatch: AppDispatch): () => void
 // ─── DELETE /jobs/{job_id} ───────────────────────────────────────────────────
 
 export async function cancelRender(jobId: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/jobs/${jobId}`, {
+  const res = await fetchAuth(`${BASE_URL}/jobs/${jobId}`, {
     method: "DELETE",
-    headers: authHeaders(),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -135,9 +127,7 @@ export async function cancelRender(jobId: string): Promise<void> {
 // ─── GET /jobs/{job_id}/download ─────────────────────────────────────────────
 
 async function fetchVideoBlob(jobId: string): Promise<Blob> {
-  const res = await fetch(`${BASE_URL}/jobs/${jobId}/download`, {
-    headers: authHeaders(),
-  });
+  const res = await fetchAuth(`${BASE_URL}/jobs/${jobId}/download`);
   if (!res.ok) throw new Error("Video not available");
   if (!res.body) return res.blob();
 
@@ -166,4 +156,19 @@ export async function downloadVideo(jobId: string): Promise<void> {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// ─── Public metrics ───────────────────────────────────────────────────────────
+
+export interface PublicMetrics {
+  total_videos_created: number;
+  total_duration_seconds: number;
+  total_clips_used: number;
+  money_earned: number;
+}
+
+export async function getPublicMetrics(): Promise<PublicMetrics> {
+  const res = await fetch(`${BASE_URL}/metrics`);
+  if (!res.ok) throw new Error("Failed to fetch metrics");
+  return res.json();
 }

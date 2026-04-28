@@ -1,4 +1,4 @@
-import { CreateVideo, Home, LastJob, Logging } from "@/pages";
+import { CreateVideo, Home, UserPage, Logging } from "@/pages";
 
 type Props = {
   path: string;
@@ -12,7 +12,7 @@ export const publicRoutes: Props[] = [
 
 export const routes: Props[] = [
   { path: "/create-video", element: <CreateVideo /> },
-  { path: "/last-job", element: <LastJob /> },
+  { path: "/user", element: <UserPage /> },
   { path: "/create-blind-test", element: "<BlindTest />" },
   { path: "*", element: "<NotFound />" },
 ];
