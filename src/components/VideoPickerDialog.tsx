@@ -15,6 +15,27 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 
+// ─── YT IFrame API ────────────────────────────────────────────────────────────
+
+interface YTPlayer {
+  getCurrentTime(): number;
+  destroy(): void;
+}
+
+declare global {
+  interface Window {
+    YT?: { Player: new (el: HTMLElement | HTMLIFrameElement, opts: object) => YTPlayer };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+function loadYTScript() {
+  if (document.getElementById("yt-iframe-api")) return;
+  const s = document.createElement("script");
+  s.id = "yt-iframe-api";
+  s.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(s);
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -123,42 +144,46 @@ export default function VideoPickerDialog({
   const syncTimecodeRef = useRef(true);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
 
   // Vidéo active : depuis la sélection en cours, sinon depuis l'URL déjà confirmée
   const activeVideoId = selected?.videoId ?? extractVideoId(initial.url);
 
-  // ── Timecode AUTO via postMessage (pas de YT Player API, pas de onReady) ──
+  // ── YT Player pour la sync du timecode AUTO ───────────────────────────────
 
   useEffect(() => {
     if (!activeVideoId || !open) return;
 
-    let hasPlayed = false;
-    let pendingSeek = false;
+    playerRef.current?.destroy();
+    playerRef.current = null;
 
-    const handleMessage = (event: MessageEvent) => {
-      if (event.source !== iframeRef.current?.contentWindow) return;
-      if (!syncTimecodeRef.current) return;
-      try {
-        const data = JSON.parse(event.data as string);
-        if (data.event === "onStateChange") {
-          if (data.info === 1) hasPlayed = true; // PLAYING
-          if (data.info === 3 && hasPlayed) pendingSeek = true; // BUFFERING après play
-        }
-        if (
-          pendingSeek &&
-          data.event === "infoDelivery" &&
-          data.info?.currentTime != null
-        ) {
-          pendingSeek = false;
-          setStart(secondsToTimecode(Math.floor(data.info.currentTime)));
-        }
-      } catch {
-        // ignore non-JSON messages
-      }
+    let hasPlayed = false;
+
+    const initPlayer = () => {
+      if (!iframeRef.current || !window.YT?.Player) return;
+      playerRef.current = new window.YT.Player(iframeRef.current, {
+        events: {
+          onStateChange: (e: { data: number }) => {
+            if (e.data === 1) hasPlayed = true;
+            if (e.data === 3 && hasPlayed && syncTimecodeRef.current && playerRef.current)
+              setStart(secondsToTimecode(Math.floor(playerRef.current.getCurrentTime())));
+          },
+        },
+      });
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    loadYTScript();
+    if (window.YT?.Player) {
+      initPlayer();
+    } else {
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { prev?.(); initPlayer(); };
+    }
+
+    return () => {
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
   }, [activeVideoId, open]);
 
   // ── Recherche ───────────────────────────────────────────────────────────────

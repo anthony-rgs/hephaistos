@@ -255,6 +255,7 @@ function UserDialog({
                 value={form.username}
                 onChange={(e) => set("username")(e.target.value)}
                 placeholder="paul"
+                autoComplete="off"
               />
             </div>
           )}
@@ -274,6 +275,7 @@ function UserDialog({
                     : "••••••••"
                 }
                 className="pr-10"
+                autoComplete="new-password"
               />
               <button
                 type="button"
