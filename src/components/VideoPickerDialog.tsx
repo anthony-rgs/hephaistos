@@ -15,27 +15,6 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 
-// ─── YT IFrame API ────────────────────────────────────────────────────────────
-
-interface YTPlayer {
-  getCurrentTime(): number;
-  destroy(): void;
-}
-
-declare global {
-  interface Window {
-    YT?: { Player: new (el: HTMLElement, opts: object) => YTPlayer };
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
-function loadYTScript() {
-  if (document.getElementById("yt-iframe-api")) return;
-  const s = document.createElement("script");
-  s.id = "yt-iframe-api";
-  s.src = "https://www.youtube.com/iframe_api";
-  document.head.appendChild(s);
-}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -82,13 +61,20 @@ function secondsToTimecode(seconds: number) {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-// Utilise directement le CDN YouTube — fiable à 100%
 function thumbnail(videoId: string) {
   return `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
 }
 
 function stripStreams(title: string): string {
   return title.replace(/\s*\(\d+(?:[.,]\d+)?b\)\s*$/i, "").trim();
+}
+
+function extractVideoId(url: string): string | null {
+  try {
+    return new URL(url).searchParams.get("v");
+  } catch {
+    return null;
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -136,60 +122,44 @@ export default function VideoPickerDialog({
   const [syncTimecode, setSyncTimecode] = useState(true);
   const syncTimecodeRef = useRef(true);
 
-  const playerContainerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<YTPlayer | null>(null);
-  const hasBeenReadyRef = useRef(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // ── Charger + initialiser le player YT ──────────────────────────────────────
+  // Vidéo active : depuis la sélection en cours, sinon depuis l'URL déjà confirmée
+  const activeVideoId = selected?.videoId ?? extractVideoId(initial.url);
+
+  // ── Timecode AUTO via postMessage (pas de YT Player API, pas de onReady) ──
 
   useEffect(() => {
-    if (!selected || !open) return;
+    if (!activeVideoId || !open) return;
 
-    hasBeenReadyRef.current = false;
-    playerRef.current?.destroy();
-    playerRef.current = null;
+    let hasPlayed = false;
+    let pendingSeek = false;
 
-    const initPlayer = () => {
-      if (!playerContainerRef.current || !window.YT?.Player) return;
-      playerRef.current = new window.YT.Player(playerContainerRef.current, {
-        videoId: selected.videoId,
-        playerVars: { origin: window.location.origin, rel: 0 },
-        events: {
-          onReady: () => {
-            hasBeenReadyRef.current = true;
-          },
-          // State 3 = BUFFERING — déclenché quand l'utilisateur clique sur la barre de progression
-          onStateChange: (e: { data: number }) => {
-            if (
-              e.data === 3 &&
-              hasBeenReadyRef.current &&
-              syncTimecodeRef.current &&
-              playerRef.current
-            )
-              setStart(secondsToTimecode(playerRef.current.getCurrentTime()));
-          },
-        },
-      });
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (!syncTimecodeRef.current) return;
+      try {
+        const data = JSON.parse(event.data as string);
+        if (data.event === "onStateChange") {
+          if (data.info === 1) hasPlayed = true; // PLAYING
+          if (data.info === 3 && hasPlayed) pendingSeek = true; // BUFFERING après play
+        }
+        if (
+          pendingSeek &&
+          data.event === "infoDelivery" &&
+          data.info?.currentTime != null
+        ) {
+          pendingSeek = false;
+          setStart(secondsToTimecode(Math.floor(data.info.currentTime)));
+        }
+      } catch {
+        // ignore non-JSON messages
+      }
     };
 
-    loadYTScript();
-
-    if (window.YT?.Player) {
-      initPlayer();
-    } else {
-      const prev = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        prev?.();
-        initPlayer();
-      };
-    }
-
-    return () => {
-      playerRef.current?.destroy();
-      playerRef.current = null;
-      hasBeenReadyRef.current = false;
-    };
-  }, [selected?.videoId, open]); // eslint-disable-line react-hooks/exhaustive-deps
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [activeVideoId, open]);
 
   // ── Recherche ───────────────────────────────────────────────────────────────
 
@@ -243,7 +213,7 @@ export default function VideoPickerDialog({
       open={open}
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="min-w-[60vw] p-0 gap-0 overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[72dvw] p-0 gap-0 overflow-hidden">
         {/* Header */}
         <div className="flex items-center px-6 py-4 border-b shrink-0">
           <div className="flex flex-col gap-0.5">
@@ -260,7 +230,7 @@ export default function VideoPickerDialog({
         </div>
 
         {/* Body */}
-        <div className="grid grid-cols-[2fr_3fr] h-120 min-h-0 overflow-hidden">
+        <div className="grid grid-cols-[2fr_3fr] h-[80vh] min-h-0 overflow-hidden">
           {/* Colonne gauche — recherche */}
           <div className="flex min-h-0 flex-col gap-3 border-r p-4">
             <div className="flex gap-2">
@@ -344,139 +314,147 @@ export default function VideoPickerDialog({
           </div>
 
           {/* Colonne droite — preview + champs */}
-          <div className="flex flex-col gap-4 p-4 overflow-y-auto">
-            {selected ? (
-              <div className="aspect-video w-full rounded-lg overflow-hidden bg-black shrink-0">
-                <div
-                  ref={playerContainerRef}
-                  className="w-full h-full"
+          <div className="flex flex-col min-h-0 p-4 gap-3">
+            <div className="flex-1 overflow-y-auto flex flex-col gap-4">
+              {activeVideoId ? (
+                <div className="aspect-video w-full rounded-lg overflow-hidden bg-black shrink-0">
+                  {/* key=activeVideoId → remount de l'iframe si la vidéo change */}
+                  <iframe
+                    key={activeVideoId}
+                    ref={iframeRef}
+                    src={`https://www.youtube.com/embed/${activeVideoId}?enablejsapi=1&rel=0&origin=${encodeURIComponent(window.location.origin)}`}
+                    className="w-full h-full"
+                    allow="autoplay; encrypted-media; fullscreen"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className="aspect-video w-full rounded-lg border border-dashed border-border flex items-center justify-center shrink-0">
+                  <p className="text-xs text-muted-foreground">
+                    Sélectionne une vidéo ou colle une URL
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-[7rem_2fr_0.5fr] items-center gap-x-3 gap-y-3">
+                <Label className="justify-end text-muted-foreground">
+                  URL vidéo
+                </Label>
+                <Input
+                  tabIndex={-1}
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
                 />
-              </div>
-            ) : (
-              <div className="aspect-video w-full rounded-lg border border-dashed border-border flex items-center justify-center shrink-0">
-                <p className="text-xs text-muted-foreground">
-                  Sélectionne une vidéo ou colle une URL
-                </p>
-              </div>
-            )}
+                <div />
 
-            <div className="grid grid-cols-[7rem_2fr_0.5fr] items-center gap-x-3 gap-y-3">
-              <Label className="justify-end text-muted-foreground">
-                URL vidéo
-              </Label>
-              <Input
-                tabIndex={-1}
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-              />
-              <div />
+                <Label className="justify-end text-muted-foreground">
+                  Début extrait
+                </Label>
+                <Input
+                  value={start}
+                  onChange={(e) => setStart(e.target.value)}
+                  placeholder="00:00:00"
+                />
+                <div className="flex items-center justify-end gap-1.5">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          tabIndex={-1}
+                          onClick={() => {
+                            const next = !syncTimecode;
+                            setSyncTimecode(next);
+                            syncTimecodeRef.current = next;
+                          }}
+                          className={`shrink-0 flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors border ${
+                            syncTimecode
+                              ? "border-violet-400/40 bg-violet-400/10 text-violet-400"
+                              : "border-border text-muted-foreground"
+                          }`}
+                        >
+                          AUTO
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        {syncTimecode
+                          ? "Timecode synchronisé — cliquer pour désactiver"
+                          : "Timecode manuel — cliquer pour activer la sync"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          tabIndex={-1}
+                          className="shrink-0 text-muted-foreground"
+                        >
+                          <span className="text-xs font-medium">i</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        heures:minutes:secondes
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
 
-              <Label className="justify-end text-muted-foreground">
-                Début extrait
-              </Label>
-              <Input
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-                placeholder="00:00:00"
-              />
-              <div className="flex items-center justify-end gap-1.5">
+                <Label className="justify-end text-muted-foreground">
+                  Durée (s)
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  placeholder="30"
+                />
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         tabIndex={-1}
                         onClick={() => {
-                          const next = !syncTimecode;
-                          setSyncTimecode(next);
-                          syncTimecodeRef.current = next;
+                          dispatch(setAllDurations(duration));
+                          toast.success(
+                            `Durée de ${duration}s appliquée à tous les extraits`,
+                          );
                         }}
-                        className={`shrink-0 flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors border ${
-                          syncTimecode
-                            ? "border-violet-400/40 bg-violet-400/10 text-violet-400"
-                            : "border-border text-muted-foreground"
-                        }`}
+                        className="w-full flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors border border-border text-muted-foreground hover:border-violet-400/40 hover:text-violet-400 hover:bg-violet-400/5"
                       >
-                        AUTO
+                        TOUS
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {syncTimecode
-                        ? "Timecode synchronisé — cliquer pour désactiver"
-                        : "Timecode manuel — cliquer pour activer la sync"}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        tabIndex={-1}
-                        className="shrink-0 text-muted-foreground"
-                      >
-                        <span className="text-xs font-medium">i</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      heures:minutes:secondes
+                      Appliquer cette durée à tous les extraits (y compris les
+                      futurs)
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
+            </div>
 
-              <Label className="justify-end text-muted-foreground">
-                Durée (s)
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                placeholder="30"
-              />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      tabIndex={-1}
-                      onClick={() => {
-                        dispatch(setAllDurations(duration));
-                        toast.success(
-                          `Durée de ${duration}s appliquée à tous les extraits`,
-                        );
-                      }}
-                      className="w-full flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors border border-border text-muted-foreground hover:border-violet-400/40 hover:text-violet-400 hover:bg-violet-400/5"
-                    >
-                      TOUS
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    Appliquer cette durée à tous les extraits (y compris les
-                    futurs)
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="flex items-center justify-end gap-2 pt-4 border-t">
+              <Button
+                size="sm"
+                variant="outline"
+                tabIndex={-1}
+                onClick={() => onOpenChange(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirm}
+                disabled={!url}
+              >
+                Confirmer
+              </Button>
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-3 border-t bg-muted/30 shrink-0">
-          <Button
-            variant="outline"
-            tabIndex={-1}
-            onClick={() => onOpenChange(false)}
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={!url}
-          >
-            Confirmer
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

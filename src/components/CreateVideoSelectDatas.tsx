@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "./ui/button";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { addClip, removeClip } from "@/store/createVideoSlice";
@@ -6,10 +5,8 @@ import TextStyleFields from "./TextStyleFields";
 import VideoFields from "./VideoFields";
 import GlobalTitleFields from "./GlobalTitleFields";
 import CheckboxSaveData from "./CheckboxSaveData";
-import BillionsClubDialog from "./BillionsClubDialog";
-import ImportJsonDialog from "./ImportJsonDialog";
 import RenderSettings from "./RenderSettings";
-import { PlusIcon, Trash2Icon, DatabaseIcon, FileJsonIcon } from "lucide-react";
+import { PlusIcon, Trash2Icon } from "lucide-react";
 
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
@@ -29,31 +26,16 @@ export default function CreateVideoSelectDatas() {
   const dispatch = useAppDispatch();
   const clips = useAppSelector((s) => s.createVideo.clips);
   const features = useAppSelector((s) => s.createVideo.templateFeatures);
-  const [billionsOpen, setBillionsOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-8 pt-4">
-
-      {/* Actions d'import */}
-      <div className="flex items-center justify-between">
-        <SectionHeader eyebrow="Étape 2" title="Données & style" />
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setBillionsOpen(true)}>
-            <DatabaseIcon className="size-3.5" />
-            Billions Club
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-            <FileJsonIcon className="size-3.5" />
-            Importer JSON
-          </Button>
-        </div>
-      </div>
-
+    <div className="flex flex-col gap-8">
       {/* Titre global */}
       {features.includes("globalTitle") && (
         <div className="flex flex-col gap-4">
-          <SectionHeader eyebrow="Global" title="Titre global" />
+          <SectionHeader
+            eyebrow="Global"
+            title="Titre global"
+          />
           <GlobalTitleFields />
           <div className="h-px bg-border" />
         </div>
@@ -61,9 +43,15 @@ export default function CreateVideoSelectDatas() {
 
       {/* Extraits */}
       {clips.map((_, index) => (
-        <div key={index} className="flex flex-col gap-4">
+        <div
+          key={index}
+          className="flex flex-col gap-4"
+        >
           <div className="flex items-center justify-between">
-            <SectionHeader eyebrow={`Extrait ${index + 1}`} title="Texte & vidéo" />
+            <SectionHeader
+              eyebrow={`Extrait ${index + 1}`}
+              title="Texte & vidéo"
+            />
             {clips.length > 1 && (
               <Button
                 size="sm"
@@ -78,7 +66,8 @@ export default function CreateVideoSelectDatas() {
           </div>
           <TextStyleFields clipIndex={index} />
           <VideoFields clipIndex={index} />
-          {index < clips.length - 1 && <div className="h-px bg-border" />}
+
+          {index < clips.length - 1 && <div className="mt-3 h-px bg-border" />}
         </div>
       ))}
 
@@ -98,16 +87,16 @@ export default function CreateVideoSelectDatas() {
 
       {/* Paramètres rendu */}
       <div className="flex flex-col gap-4">
-        <SectionHeader eyebrow="Rendu" title="Paramètres" />
+        <SectionHeader
+          eyebrow="Rendu"
+          title="Paramètres"
+        />
         <RenderSettings />
       </div>
 
       <div className="h-px bg-border" />
 
       <CheckboxSaveData target="step2" />
-
-      <BillionsClubDialog open={billionsOpen} onOpenChange={setBillionsOpen} />
-      <ImportJsonDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }

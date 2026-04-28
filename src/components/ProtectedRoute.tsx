@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { logout } from "@/store/authSlice";
-import { verifyToken } from "@/utils/api/auth";
+import { logout, setUserData } from "@/store/authSlice";
+import { verifyToken, getMe } from "@/utils/api/auth";
 
 export default function ProtectedRoute() {
   const dispatch = useAppDispatch();
@@ -19,9 +19,16 @@ export default function ProtectedRoute() {
 
     const controller = new AbortController();
 
-    verifyToken(token, controller.signal).then((result) => {
+    verifyToken(token, controller.signal).then(async (result) => {
       if (controller.signal.aborted) return;
       if (result === "valid" || result === "error") {
+        if (result === "valid") {
+          getMe(token).then((me) => {
+            if (!controller.signal.aborted) {
+              dispatch(setUserData({ username: me.username, isAdmin: me.is_admin, features: me.features, maxJobs: me.max_jobs }));
+            }
+          }).catch(() => {});
+        }
         setStatus("valid");
       } else {
         dispatch(logout());

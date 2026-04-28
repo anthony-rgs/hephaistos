@@ -1,21 +1,22 @@
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { LogOutIcon, MoonIcon, SunIcon } from "lucide-react";
+import { MoonIcon, SunIcon, UserIcon } from "lucide-react";
 import { Button } from "./ui/button";
-import { useAppDispatch, useAppSelector } from "@/store";
-import { logout } from "@/store/authSlice";
+import { useAppSelector } from "@/store";
 import { useTheme } from "@/utils/useTheme";
 
-export default function Navbar({ showBanner = false, bannerIn = false }: { showBanner?: boolean; bannerIn?: boolean }) {
-  const dispatch = useAppDispatch();
+export default function Navbar({
+  showBanner = false,
+  bannerIn = false,
+}: {
+  showBanner?: boolean;
+  bannerIn?: boolean;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const token = useAppSelector((s) => s.auth.token);
+  const isAdmin = useAppSelector((s) => s.auth.isAdmin);
+  const username = useAppSelector((s) => s.auth.username);
   const { isDark, toggle } = useTheme();
-
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate("/logging");
-  };
 
   const handleLogoClick = (e: React.MouseEvent) => {
     if (location.pathname === "/") {
@@ -32,10 +33,15 @@ export default function Navbar({ showBanner = false, bannerIn = false }: { showB
     }`;
 
   return (
-    <header className={`fixed left-0 right-0 h-14 z-40 flex items-center px-6 lg:px-10 bg-background/90 backdrop-blur-sm border-b border-border/50 transition-[top] duration-300 ease-out ${showBanner && bannerIn ? "top-10" : "top-0"}`}>
-
+    <header
+      className={`fixed left-0 right-0 h-14 z-40 flex items-center px-6 lg:px-10 bg-background/90 backdrop-blur-sm border-b border-border/50 transition-[top] duration-300 ease-out ${showBanner && bannerIn ? "top-10" : "top-0"}`}
+    >
       {/* Logo */}
-      <NavLink to="/" onClick={handleLogoClick} className="flex items-center gap-1.5 shrink-0">
+      <NavLink
+        to="/"
+        onClick={handleLogoClick}
+        className="flex items-center gap-1.5 shrink-0"
+      >
         <span className="text-base font-black uppercase tracking-tight leading-none">
           Vexia
         </span>
@@ -43,14 +49,51 @@ export default function Navbar({ showBanner = false, bannerIn = false }: { showB
       </NavLink>
 
       {/* Nav links */}
-      <nav className="hidden lg:flex items-center gap-7 ml-10">
-        <NavLink to="/" end className={linkClass}>Accueil</NavLink>
-        <NavLink to="/create-video" className={linkClass}>Créer</NavLink>
+      <nav className="hidden lg:flex items-center gap-7 justify-between w-full ml-10 mr-6">
+        <div className="flex gap-7">
+          <NavLink
+            to="/"
+            end
+            className={linkClass}
+          >
+            Accueil
+          </NavLink>
+          <NavLink
+            to="/create-video"
+            className={linkClass}
+          >
+            Créer
+          </NavLink>
+          {isAdmin && (
+            <NavLink
+              to="/admin"
+              className={linkClass}
+            >
+              Admin
+            </NavLink>
+          )}
+          {!token && (
+            <NavLink
+              to="/logging"
+              className={linkClass}
+            >
+              Connexion
+            </NavLink>
+          )}
+        </div>
+
         {token && (
-          <NavLink to="/last-job" className={linkClass}>Dernier rendu</NavLink>
-        )}
-        {!token && (
-          <NavLink to="/logging" className={linkClass}>Connexion</NavLink>
+          <button
+            onClick={() => navigate("/user")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+              location.pathname === "/user"
+                ? "text-foreground bg-muted"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            }`}
+          >
+            <UserIcon className="size-3.5" />
+            {username}
+          </button>
         )}
       </nav>
 
@@ -62,20 +105,13 @@ export default function Navbar({ showBanner = false, bannerIn = false }: { showB
           className="text-muted-foreground hover:text-foreground size-8 p-0"
           onClick={toggle}
         >
-          {isDark ? <SunIcon className="size-3.5" /> : <MoonIcon className="size-3.5" />}
+          {isDark ? (
+            <SunIcon className="size-3.5" />
+          ) : (
+            <MoonIcon className="size-3.5" />
+          )}
         </Button>
-        {token && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-muted-foreground hover:text-foreground size-8 p-0"
-            onClick={handleLogout}
-          >
-            <LogOutIcon className="size-3.5" />
-          </Button>
-        )}
       </div>
-
     </header>
   );
 }

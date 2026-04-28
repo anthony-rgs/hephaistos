@@ -10,11 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -164,10 +160,12 @@ export default function StylePopover<T extends StyleBase>({
         align="end"
         className="gap-3 w-64"
       >
-        <div className="flex flex-col gap-0.5 pb-1">
+        <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2">
             <span className="w-4 h-px bg-violet-400" />
-            <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">Style</span>
+            <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+              Style
+            </span>
           </div>
           <h3 className="text-sm font-semibold tracking-tight">{label}</h3>
         </div>

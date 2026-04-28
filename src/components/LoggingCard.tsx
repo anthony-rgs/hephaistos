@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useAppDispatch } from "@/store";
-import { loginSuccess } from "@/store/authSlice";
-import { login } from "@/utils/api/auth";
+import { loginSuccess, setUserData } from "@/store/authSlice";
+import { login, getMe } from "@/utils/api/auth";
 
 const CONTACT_EMAIL = "ringressi.anthony@gmail.com";
 
@@ -30,6 +30,8 @@ export default function LoggingCard() {
     try {
       const { access_token } = await login(username, password);
       dispatch(loginSuccess({ token: access_token, username }));
+      const me = await getMe(access_token);
+      dispatch(setUserData({ username: me.username, isAdmin: me.is_admin, features: me.features, maxJobs: me.max_jobs }));
       navigate("/create-video");
     } catch (err: unknown) {
       const detail = (err as { detail?: { detail?: string; message?: string } })?.detail;

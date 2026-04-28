@@ -77,7 +77,7 @@ export default function BillionsClubSelection({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-2 pt-2 border-t">
+      <div className="flex items-center justify-between gap-2 pt-4 border-t">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground shrink-0">Format</span>
           <Select

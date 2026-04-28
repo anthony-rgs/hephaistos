@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import MobileGuard from "./MobileGuard";
+import TokenPolling from "./TokenPolling";
 import { useAppSelector } from "@/store";
 import { Button } from "./ui/button";
 
@@ -28,6 +29,7 @@ export default function Layout() {
 
   return (
     <>
+      {token && <TokenPolling />}
       {bannerMounted && (
         <div
           className={`fixed top-0 left-0 right-0 h-10 z-50 flex items-center justify-center gap-3 bg-violet-600/95 backdrop-blur-sm px-4 transition-transform duration-300 ease-out ${
