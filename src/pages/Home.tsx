@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { getPublicMetrics, type PublicMetrics } from "@/utils/api/render";
 import {
   ArrowRightIcon,
   ArrowUpRightIcon,
@@ -797,9 +798,23 @@ function useTypewriter(lines: string[]) {
   return { text: lines[lineIdx].slice(0, displayed), typing };
 }
 
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h${m > 0 ? ` ${m}min` : ""}`;
+  if (m > 0) return `${m}min`;
+  return `${seconds}s`;
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const token = useAppSelector((s) => s.auth.token);
+  const [metrics, setMetrics] = useState<PublicMetrics | null>(null);
+
+  useEffect(() => {
+    getPublicMetrics().then(setMetrics).catch(() => {});
+  }, []);
+
   const isMobileSafari =
     /iP(hone|ad|od)/.test(navigator.userAgent) &&
     /WebKit/.test(navigator.userAgent) &&
@@ -910,7 +925,7 @@ export default function Home() {
               size="lg"
               variant="outline"
               className="h-12 w-full sm:w-auto px-8 text-sm font-bold tracking-wide uppercase"
-              onClick={() => navigate("/last-job")}
+              onClick={() => navigate("/user")}
             >
               Dernier rendu
             </Button>
@@ -923,17 +938,18 @@ export default function Home() {
           className="relative z-10 grid grid-cols-2 sm:flex rounded-xl border border-border overflow-hidden"
         >
           {[
-            { value: "4", label: "templates" },
-            { value: "5 MIN", label: "de rendu" },
             { value: "100%", label: "personnalisable" },
-            { value: "∞", label: "clips" },
+            { value: "5 MIN", label: "de rendu" },
+            { value: metrics ? String(metrics.total_clips_used) : "—", label: "clips utilisés" },
+            { value: metrics ? String(metrics.total_videos_created) : "—", label: "vidéos créées" },
+            { value: metrics ? formatDuration(metrics.total_duration_seconds) : "—", label: "de contenu" },
           ].map(({ value, label }, i) => (
             <div
               key={label}
               className={`flex flex-col items-center gap-0.5 px-5 py-3
-                ${i % 2 === 0 ? "border-r border-border" : ""}
-                ${i < 2 ? "border-b border-border sm:border-b-0" : ""}
-                ${i > 0 && i < 3 ? "sm:border-r sm:border-border" : ""}
+                ${i % 2 === 0 && i !== 4 ? "border-r border-border" : ""}
+                ${i < 4 ? "border-b border-border sm:border-b-0" : ""}
+                ${i > 0 && i < 4 ? "sm:border-r sm:border-border" : ""}
               `}
             >
               <span className="text-lg font-black tracking-tight uppercase">

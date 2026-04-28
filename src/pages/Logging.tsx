@@ -1,6 +1,22 @@
+import { useEffect, useState } from "react";
 import { LoggingCard } from "@/components";
+import { getPublicMetrics, type PublicMetrics } from "@/utils/api/render";
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h${m > 0 ? ` ${m}min` : ""}`;
+  if (m > 0) return `${m}min`;
+  return `${seconds}s`;
+}
 
 export default function Logging() {
+  const [metrics, setMetrics] = useState<PublicMetrics | null>(null);
+
+  useEffect(() => {
+    getPublicMetrics().then(setMetrics).catch(() => {});
+  }, []);
+
   return (
     <section className="relative flex h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* Left — branding */}
@@ -32,10 +48,11 @@ export default function Logging() {
         {/* Bottom stats */}
         <div className="relative z-10 flex items-center gap-8">
           {[
-            { value: "4", label: "templates" },
-            { value: "5 min", label: "de rendu" },
             { value: "100%", label: "personnalisable" },
-            { value: "∞", label: "clips" },
+            { value: "5 min", label: "de rendu" },
+            { value: metrics ? String(metrics.total_clips_used) : "—", label: "clips utilisés" },
+            { value: metrics ? String(metrics.total_videos_created) : "—", label: "vidéos créées" },
+            { value: metrics ? formatDuration(metrics.total_duration_seconds) : "—", label: "de contenu" },
           ].map(({ value, label }) => (
             <div
               key={label}

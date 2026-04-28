@@ -21,6 +21,8 @@ import {
 } from "@/components";
 import { Button } from "@/components/ui/button";
 import TemplatePreview from "@/components/TemplatePreview";
+import BillionsClubDialog from "@/components/BillionsClubDialog";
+import ImportJsonDialog from "@/components/ImportJsonDialog";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setJob, updateJob } from "@/store/renderSlice";
 import {
@@ -31,7 +33,13 @@ import {
   getVideoObjectUrl,
   downloadVideo,
 } from "@/utils/api/render";
-import { DownloadIcon, PauseIcon, PlayIcon } from "lucide-react";
+import {
+  DatabaseIcon,
+  DownloadIcon,
+  FileJsonIcon,
+  PauseIcon,
+  PlayIcon,
+} from "lucide-react";
 import { getCookiesStatus, postCookies } from "@/utils/api/auth";
 
 // ─── Extension Chrome ─────────────────────────────────────────────────────────
@@ -97,7 +105,11 @@ export default function CreateVideo() {
       canvas.height = img.naturalHeight;
       canvas.getContext("2d")?.drawImage(img, 0, 0);
       frozenSrcs.current.set(img, liveSrc);
-      try { img.src = canvas.toDataURL("image/png"); } catch { /* cross-origin */ }
+      try {
+        img.src = canvas.toDataURL("image/png");
+      } catch {
+        /* cross-origin */
+      }
     };
 
     if (img.complete && img.naturalWidth > 0) {
@@ -121,18 +133,30 @@ export default function CreateVideo() {
     if (!previewPaused || !previewRef.current) return;
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
-        if (mutation.type === "attributes" && mutation.attributeName === "src") {
+        if (
+          mutation.type === "attributes" &&
+          mutation.attributeName === "src"
+        ) {
           const img = mutation.target as HTMLImageElement;
           if (!img.src.startsWith("data:")) freezeImg(img);
         }
         if (mutation.type === "childList") {
           mutation.addedNodes.forEach((node) => {
             if (node instanceof HTMLImageElement) freezeImg(node);
-            else if (node instanceof Element) node.querySelectorAll("img").forEach((img) => freezeImg(img as HTMLImageElement));
+            else if (node instanceof Element)
+              node
+                .querySelectorAll("img")
+                .forEach((img) => freezeImg(img as HTMLImageElement));
           });
           mutation.removedNodes.forEach((node) => {
-            if (node instanceof HTMLImageElement) frozenSrcs.current.delete(node);
-            else if (node instanceof Element) node.querySelectorAll("img").forEach((img) => frozenSrcs.current.delete(img as HTMLImageElement));
+            if (node instanceof HTMLImageElement)
+              frozenSrcs.current.delete(node);
+            else if (node instanceof Element)
+              node
+                .querySelectorAll("img")
+                .forEach((img) =>
+                  frozenSrcs.current.delete(img as HTMLImageElement),
+                );
           });
         }
       }
@@ -145,6 +169,10 @@ export default function CreateVideo() {
     });
     return () => observer.disconnect();
   }, [previewPaused]);
+
+  const userFeatures = useAppSelector((s) => s.auth.features);
+  const [billionsOpen, setBillionsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isLaunching, setIsLaunching] = useState(false);
@@ -310,24 +338,55 @@ export default function CreateVideo() {
 
   return (
     <section className="relative overflow-hidden flex gap-12 px-12">
+      {/* Background glows */}
+      <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-violet-600 blur-[130px] opacity-15" />
+      <div className="pointer-events-none absolute bottom-0 -left-20 w-80 h-80 rounded-full bg-indigo-600 blur-[120px] opacity-10" />
       <div className={`w-full ${colH} flex flex-col`}>
         {/* Header */}
-        <div className="shrink-0 pt-8 pb-5">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-4 h-px bg-violet-400" />
-            <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
-              Étape {currentStep}/3
-            </span>
+        <div className="shrink-0 pt-8 pb-5 flex justify-between items-center">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="w-4 h-px bg-violet-400" />
+              <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
+                Étape {currentStep}/3
+              </span>
+            </div>
+            <div className="flex items-end justify-between gap-4">
+              <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">
+                {STEP_TITLES[currentStep - 1]}
+              </h2>
+            </div>
           </div>
-          <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">
-            {STEP_TITLES[currentStep - 1]}
-          </h2>
+          {currentStep === 2 && (
+            <div className="flex items-center gap-2 pb-0.5">
+              {userFeatures.includes("billionsClub") && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setBillionsOpen(true)}
+                >
+                  <DatabaseIcon className="size-3.5" />
+                  Billions Club
+                </Button>
+              )}
+              {userFeatures.includes("json") && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setImportOpen(true)}
+                >
+                  <FileJsonIcon className="size-3.5" />
+                  Importer JSON
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="h-px bg-border shrink-0" />
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar py-6 flex flex-col gap-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar py-5 flex flex-col gap-4">
           {currentStep === 1 && <CreateVideoSelects />}
           {currentStep === 2 && (
             <>
@@ -362,9 +421,11 @@ export default function CreateVideo() {
           showPrev={currentStep > 1}
           leftAction={step4Left}
           rightAction={
-            !token && currentStep === 2
-              ? <Button onClick={() => navigate("/logging")}>Se connecter</Button>
-              : step4Right
+            !token && currentStep === 2 ? (
+              <Button onClick={() => navigate("/logging")}>Se connecter</Button>
+            ) : (
+              step4Right
+            )
           }
         />
       </div>
@@ -393,11 +454,13 @@ export default function CreateVideo() {
         <div className="h-px bg-border shrink-0" />
 
         {/* Preview */}
-        <div className="flex-1 flex items-center justify-center pt-6">
+        <div className="flex-1 flex items-center justify-center pt-5">
           <div
             className="relative group border border-border rounded-2xl overflow-hidden shrink-0"
             style={{
-              height: token ? "calc(100vh - 3.5rem - 4rem - 100px)" : "calc(100vh - 6rem - 4rem - 100px)",
+              height: token
+                ? "calc(100vh - 3.5rem - 4rem - 100px)"
+                : "calc(100vh - 6rem - 4rem - 100px)",
               aspectRatio: "9/16",
             }}
           >
@@ -411,8 +474,14 @@ export default function CreateVideo() {
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             ) : (
-              <div ref={previewRef} className={`w-full h-full ${previewPaused ? "preview-paused" : ""}`}>
-                <TemplatePreview key={previewKey} mode={currentStep === 1 ? "fake" : "live"} />
+              <div
+                ref={previewRef}
+                className={`w-full h-full ${previewPaused ? "preview-paused" : ""}`}
+              >
+                <TemplatePreview
+                  key={previewKey}
+                  mode={currentStep === 1 ? "fake" : "live"}
+                />
               </div>
             )}
             {!(currentStep === 3 && videoUrl) && (
@@ -420,15 +489,24 @@ export default function CreateVideo() {
                 onClick={togglePause}
                 className="absolute bottom-3 right-3 size-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/70"
               >
-                {previewPaused
-                  ? <PlayIcon className="size-3.5 text-white" />
-                  : <PauseIcon className="size-3.5 text-white" />
-                }
+                {previewPaused ? (
+                  <PlayIcon className="size-3.5 text-white" />
+                ) : (
+                  <PauseIcon className="size-3.5 text-white" />
+                )}
               </button>
             )}
           </div>
         </div>
       </div>
+      <BillionsClubDialog
+        open={billionsOpen}
+        onOpenChange={setBillionsOpen}
+      />
+      <ImportJsonDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+      />
     </section>
   );
 }

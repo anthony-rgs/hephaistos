@@ -204,7 +204,7 @@ export default function LastJob() {
         <div className="h-px bg-border shrink-0" />
 
         {/* Preview */}
-        <div className="flex-1 flex items-center justify-center pt-6">
+        <div className="flex-1 flex items-center justify-center pt-5">
           <div
             className="border border-border rounded-2xl overflow-hidden shrink-0"
             style={{

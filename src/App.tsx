@@ -1,8 +1,9 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
-import { Home, Logging, CreateVideo, LastJob, RenderView } from "@/pages";
+import { Home, Logging, CreateVideo, UserPage, RenderView, Admin } from "@/pages";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import Layout from "@/components/Layout";
 
 export default function App() {
@@ -28,7 +29,10 @@ export default function App() {
             <Route path="/logging" element={<Logging />} />
             <Route path="/create-video" element={<CreateVideo />} />
             <Route element={<ProtectedRoute />}>
-              <Route path="/last-job" element={<LastJob />} />
+              <Route path="/user" element={<UserPage />} />
+            </Route>
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<Admin />} />
             </Route>
           </Route>
           <Route path="/render/:jobId" element={<RenderView />} />

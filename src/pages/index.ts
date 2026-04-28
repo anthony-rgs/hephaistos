@@ -1,7 +1,8 @@
+import Admin from "./Admin";
 import CreateVideo from "./CreateVideo";
 import Home from "./Home";
-import LastJob from "./LastJob";
 import Logging from "./Logging";
 import RenderView from "./RenderView";
+import UserPage from "./UserPage";
 
-export { CreateVideo, Home, LastJob, Logging, RenderView };
+export { Admin, CreateVideo, Home, Logging, RenderView, UserPage };
