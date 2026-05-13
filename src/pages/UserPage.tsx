@@ -18,8 +18,18 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { logout } from "@/store/authSlice";
-import { getMe, type MeJob, type MeResponse } from "@/utils/api/auth";
-import { getVideoObjectUrl, downloadVideo } from "@/utils/api/render";
+import {
+  getMe,
+  type MeJob,
+  type MeResponse,
+} from "@/utils/api/auth";
+import {
+  getVideoObjectUrl,
+  downloadVideo,
+  subscribeToJobCallback,
+  cancelRender,
+} from "@/utils/api/render";
+import type { RenderJob } from "@/store/renderSlice";
 import { toast } from "sonner";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -97,93 +107,156 @@ function JobRow({
   isActive,
   selectedJobId,
   onSelect,
+  liveData,
+  onCancelled,
 }: {
   job: MeJob;
   idx: number;
   isActive: boolean;
   selectedJobId: string | null;
   onSelect: (id: string) => void;
+  liveData?: Partial<RenderJob>;
+  onCancelled?: (id: string) => void;
 }) {
   const [qrOpen, setQrOpen] = useState(false);
-  const isDone = job.status === "done";
+  const [cancelling, setCancelling] = useState(false);
+
+  const liveStatus = liveData?.status ?? job.status;
+  const isDone = liveStatus === "done";
+  const isFailed = liveStatus === "failed";
+  const isCancelled = liveStatus === "cancelled";
+  const isRunning = isActive && !isDone && !isFailed && !isCancelled;
   const isSelected = selectedJobId === job.job_id;
+
+  const message = liveData?.message;
+  const liveClips = liveData?.clips;
+  const currentClip = liveClips?.find((c) => c.status === "downloading");
+  const progressLabel = message ?? (currentClip ? `Clip : ${currentClip.title}` : null);
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      await cancelRender(job.job_id);
+      onCancelled?.(job.job_id);
+    } catch {
+      toast.error("Erreur lors de l'annulation.");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <>
       <div
-        className={`group flex items-center gap-2 text-xs rounded-lg px-2 h-8 transition-colors ${
-          isActive
+        className={`group flex flex-col rounded-lg px-2 py-1.5 transition-colors ${
+          isRunning
             ? "bg-violet-400/5"
             : isSelected
               ? "bg-violet-400/10"
               : isDone
                 ? "hover:bg-muted/60"
-                : ""
+                : isFailed
+                  ? "bg-destructive/5"
+                  : ""
         }`}
       >
-        <span className="text-[10px] text-foreground/40 shrink-0 w-5 tabular-nums font-semibold">
-          {idx}/
-        </span>
-
-        <button
-          onClick={isDone ? () => onSelect(job.job_id) : undefined}
-          disabled={!isDone}
-          className={`font-medium truncate flex-1 text-left ${
-            isActive
-              ? "text-violet-400 animate-pulse"
-              : isSelected
-                ? "text-violet-400"
-                : isDone
-                  ? "text-muted-foreground hover:text-foreground cursor-pointer"
-                  : "text-muted-foreground/50 cursor-default"
-          }`}
-        >
-          {job.title}
-        </button>
-
-        {isActive && (
-          <span className="text-[10px] text-violet-400/70 shrink-0 font-medium">
-            {job.status}
+        <div className="flex items-center gap-2 min-h-6">
+          <span className="text-[10px] text-foreground/40 shrink-0 w-5 tabular-nums font-semibold">
+            {idx}/
           </span>
-        )}
 
-        {isDone && (
-          <div className="shrink-0 flex items-center justify-end gap-2">
-            {(job.file_size_bytes != null || job.duration_seconds != null) && (
-              <span className="text-[10px] text-muted-foreground/50 tabular-nums group-hover:hidden flex items-center gap-2">
-                {job.duration_seconds != null && (
-                  <span>{formatDuration(job.duration_seconds)}</span>
-                )}
-                {job.file_size_bytes != null && (
-                  <span>{formatBytes(job.file_size_bytes)}</span>
-                )}
-              </span>
-            )}
-            <div className="hidden group-hover:flex items-center gap-1">
+          <button
+            onClick={isDone ? () => onSelect(job.job_id) : undefined}
+            disabled={!isDone}
+            className={`font-medium truncate flex-1 text-left text-xs ${
+              isRunning
+                ? "text-violet-400"
+                : isSelected
+                  ? "text-violet-400"
+                  : isFailed
+                    ? "text-destructive"
+                    : isDone
+                      ? "text-muted-foreground hover:text-foreground cursor-pointer"
+                      : "text-muted-foreground/50 cursor-default"
+            }`}
+          >
+            {job.title}
+          </button>
+
+          {/* Actions zone */}
+          {isRunning && (
+            <div className="shrink-0 flex items-center gap-1">
+              <LoaderIcon className="size-3 text-violet-400/70 animate-spin group-hover:hidden" />
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-foreground gap-1"
-                onClick={() =>
-                  downloadVideo(job.job_id).catch(() =>
-                    toast.error("Erreur de téléchargement."),
-                  )
-                }
+                className="hidden group-hover:flex h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-destructive gap-1"
+                onClick={handleCancel}
+                disabled={cancelling}
               >
-                <DownloadIcon className="size-3" />
-                Télécharger
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-violet-400 gap-1"
-                onClick={() => setQrOpen(true)}
-              >
-                <QrCodeIcon className="size-3" />
-                QR
+                {cancelling
+                  ? <LoaderIcon className="size-3 animate-spin" />
+                  : <span>Annuler</span>}
               </Button>
             </div>
-          </div>
+          )}
+
+          {isFailed && (
+            <span className="text-[10px] text-destructive shrink-0 font-medium">
+              Erreur
+            </span>
+          )}
+
+          {isCancelled && (
+            <span className="text-[10px] text-muted-foreground/50 shrink-0">
+              Annulé
+            </span>
+          )}
+
+          {isDone && (
+            <div className="shrink-0 flex items-center gap-2">
+              {(job.file_size_bytes != null || job.duration_seconds != null) && (
+                <span className="text-[10px] text-muted-foreground/50 tabular-nums group-hover:hidden flex items-center gap-2">
+                  {job.duration_seconds != null && <span>{formatDuration(job.duration_seconds)}</span>}
+                  {job.file_size_bytes != null && <span>{formatBytes(job.file_size_bytes)}</span>}
+                </span>
+              )}
+              <div className="hidden group-hover:flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-foreground gap-1"
+                  onClick={() => downloadVideo(job.job_id).catch(() => toast.error("Erreur de téléchargement."))}
+                >
+                  <DownloadIcon className="size-3" />
+                  Télécharger
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-violet-400 gap-1"
+                  onClick={() => setQrOpen(true)}
+                >
+                  <QrCodeIcon className="size-3" />
+                  QR
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Progress message */}
+        {isRunning && progressLabel && (
+          <p className="text-[10px] text-violet-400/60 truncate pl-7 pb-0.5">
+            {progressLabel}
+          </p>
+        )}
+
+        {/* Error message */}
+        {isFailed && liveData?.error && (
+          <p className="text-[10px] text-destructive/70 truncate pl-7 pb-0.5">
+            {liveData.error}
+          </p>
         )}
       </div>
 
@@ -205,15 +278,57 @@ export default function UserPage() {
   const storeUsername = useAppSelector((s) => s.auth.username);
 
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [liveJobs, setLiveJobs] = useState<Record<string, Partial<RenderJob>>>({});
+  const sseCleanups = useRef<Record<string, () => void>>({});
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const videoUrlRef = useRef<string | null>(null);
 
+
+  const refreshMe = () =>
+    getMe().then(setMe).catch(() => {});
+
   useEffect(() => {
     getMe()
       .then(setMe)
       .catch(() => toast.error("Impossible de charger le profil."));
+  }, []);
+
+  // SSE pour chaque job actif
+  useEffect(() => {
+    const activeIds = me?.active_jobs.map((j) => j.job_id) ?? [];
+
+    // Subscribe aux nouveaux jobs actifs
+    activeIds.forEach((id) => {
+      if (sseCleanups.current[id]) return;
+      sseCleanups.current[id] = subscribeToJobCallback(id, (update) => {
+        setLiveJobs((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...update } }));
+        if (
+          update.status === "done" ||
+          update.status === "failed" ||
+          update.status === "cancelled"
+        ) {
+          sseCleanups.current[id]?.();
+          delete sseCleanups.current[id];
+          refreshMe();
+        }
+      });
+    });
+
+    // Cleanup jobs qui ne sont plus actifs
+    Object.keys(sseCleanups.current).forEach((id) => {
+      if (!activeIds.includes(id)) {
+        sseCleanups.current[id]?.();
+        delete sseCleanups.current[id];
+      }
+    });
+  }, [me?.active_jobs]);
+
+  // Cleanup SSE au démontage
+  useEffect(() => {
+    const cleanups = sseCleanups.current;
+    return () => Object.values(cleanups).forEach((fn) => fn());
   }, []);
 
   useEffect(() => {
@@ -358,7 +473,7 @@ export default function UserPage() {
             </div>
           </div>
 
-          <div className="h-px bg-border" />
+          <div className="h-px bg-border w-full" />
 
           {/* ── Accès / Compte ── */}
           <div className="flex flex-col gap-3">
@@ -373,47 +488,57 @@ export default function UserPage() {
                 Compte
               </h3>
             </div>
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-semibold">
-                    Fonctionnalités actives
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    Ces accès débloquent des options supplémentaires lors de la
-                    création de vidéos.
-                  </span>
-                </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Features */}
+              <div className="rounded-lg border border-border bg-muted/10 px-3 py-2.5 flex flex-col gap-1">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+                  Fonctionnalités
+                </span>
                 {me ? (
                   me.features.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1">
                       {me.features.map((f) => (
-                        <FeatureBadge
-                          key={f}
-                          label={f}
-                        />
+                        <FeatureBadge key={f} label={f} />
                       ))}
                     </div>
                   ) : (
-                    <span className="text-[11px] text-muted-foreground/50 italic">
-                      Aucune fonctionnalité activée.
+                    <span className="text-sm font-semibold text-muted-foreground/40 italic">
+                      Aucune
                     </span>
                   )
                 ) : (
-                  <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+                  <div className="h-5 w-16 rounded bg-muted animate-pulse mt-0.5" />
                 )}
               </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold">
-                  {me
-                    ? `${me.done_jobs.length + me.active_jobs.length} / ${me.max_jobs} job${me.max_jobs > 1 ? "s" : ""}`
-                    : "— / —"}
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  Nombre de rendus utilisés sur ton quota total. Les jobs
-                  terminés comptent dans la limite.
-                </span>
-              </div>
+
+              {/* Quota jobs */}
+              {(() => {
+                const max = me?.max_jobs ?? 0;
+                const atMax = me ? (me.done_jobs.length + me.active_jobs.length) >= max : false;
+                return (
+                  <div className="rounded-lg border border-border bg-muted/10 px-3 py-2.5 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+                      Quota jobs
+                    </span>
+                    {me ? (
+                      <>
+                        <span className="text-sm font-semibold tabular-nums">
+                          {max} / {max}
+                        </span>
+                        {atMax && (
+                          <span className="text-[9px] text-muted-foreground leading-relaxed">
+                            Le prochain supprimera l'ancien.
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <div className="h-5 w-10 rounded bg-muted animate-pulse mt-0.5" />
+                    )}
+                  </div>
+                );
+              })()}
+
             </div>
           </div>
 
@@ -471,6 +596,17 @@ export default function UserPage() {
                     isActive={job.isActive}
                     selectedJobId={selectedJobId}
                     onSelect={setSelectedJobId}
+                    liveData={liveJobs[job.job_id]}
+                    onCancelled={(id) => {
+                      setMe((m) =>
+                        m
+                          ? {
+                              ...m,
+                              active_jobs: m.active_jobs.filter((j) => j.job_id !== id),
+                            }
+                          : null,
+                      );
+                    }}
                   />
                 ))
               )}

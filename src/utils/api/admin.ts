@@ -13,6 +13,14 @@ export interface AdminJob {
   duration_seconds?: number;
 }
 
+export interface ActiveAdminJob {
+  job_id: string;
+  title: string;
+  status: string;
+  message?: string;
+  created_at: string;
+}
+
 export interface AdminUser {
   id: string;
   username: string;
@@ -21,6 +29,7 @@ export interface AdminUser {
   max_jobs: number;
   created_at: string;
   jobs: AdminJob[];
+  active_jobs: ActiveAdminJob[];
   total_videos_created: number;
   total_clips_used: number;
   total_duration_seconds: number;

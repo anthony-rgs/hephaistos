@@ -53,9 +53,11 @@ import {
   getVideoObjectUrl,
   downloadVideo,
   cancelRender,
+  subscribeToJobCallback,
   getPublicMetrics,
   type PublicMetrics,
 } from "@/utils/api/render";
+import type { RenderJob } from "@/store/renderSlice";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setUserData } from "@/store/authSlice";
 import { getMe } from "@/utils/api/auth";
@@ -432,18 +434,24 @@ function ConfirmDialog({
 
 // ─── User row ─────────────────────────────────────────────────────────────────
 
+const TERMINAL_STATUSES = new Set(["done", "failed", "cancelled"]);
+
 function UserRow({
   user,
   onAction,
   onSelectJob,
   selectedJobId,
   onJobDeleted,
+  liveJobs,
+  onCancelJob,
 }: {
   user: AdminUser;
   onAction: () => void;
   onSelectJob: (jobId: string) => void;
   selectedJobId: string | null;
   onJobDeleted: (jobId: string) => void;
+  liveJobs: Record<string, Partial<RenderJob>>;
+  onCancelJob: (id: string) => void;
 }) {
   const dispatch = useAppDispatch();
   const currentUsername = useAppSelector((s) => s.auth.username);
@@ -550,92 +558,114 @@ function UserRow({
           </div>
 
           {/* Jobs list */}
-          {user.jobs?.length > 0 ? (
+          {(user.active_jobs?.length > 0 || user.jobs?.length > 0) ? (
             <div className="flex flex-col gap-0.5">
+              {/* Active jobs — SSE live data */}
+              {(user.active_jobs ?? []).map((job) => {
+                const live = liveJobs[job.job_id];
+                const effectiveStatus = live?.status ?? job.status;
+                const isFailed = effectiveStatus === "failed" || effectiveStatus === "cancelled";
+                const isActive = !TERMINAL_STATUSES.has(effectiveStatus);
+                return (
+                  <div
+                    key={job.job_id}
+                    className="group flex items-center gap-2 text-xs rounded-lg px-2 min-h-8 hover:bg-muted/40 transition-colors"
+                  >
+                    <span className="text-[10px] text-foreground/40 shrink-0 w-5">•</span>
+                    <div className="flex flex-col min-w-0 flex-1 py-1">
+                      <span className={`font-medium truncate ${isFailed ? "text-destructive/70" : "text-muted-foreground/50"}`}>
+                        {job.title}
+                      </span>
+                      {isActive && (live?.message ?? job.message) && (
+                        <span className="text-[10px] text-muted-foreground/60 truncate">
+                          {live?.message ?? job.message}
+                        </span>
+                      )}
+                      {isFailed && live?.error && (
+                        <span className="text-[10px] text-destructive/70 truncate">{live.error}</span>
+                      )}
+                    </div>
+                    {isActive && (
+                      <>
+                        <LoaderIcon className="size-3 text-muted-foreground/40 animate-spin group-hover:hidden shrink-0" />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="hidden group-hover:flex h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-destructive gap-1"
+                          onClick={() =>
+                            cancelRender(job.job_id)
+                              .then(() => onCancelJob(job.job_id))
+                              .catch(() => toast.error("Erreur lors de l'annulation."))
+                          }
+                        >
+                          <XIcon className="size-3" />
+                          Annuler
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Done jobs */}
               {user.jobs.slice(0, 5).map((job, idx) => {
-                const isDone = job.status === "done";
                 const isSelected = selectedJobId === job.id;
                 return (
                   <div
                     key={job.id}
                     className={`group flex items-center gap-2 text-xs rounded-lg px-2 h-8 transition-colors ${
-                      isSelected
-                        ? "bg-violet-400/10"
-                        : isDone
-                          ? "hover:bg-muted/60"
-                          : ""
+                      isSelected ? "bg-violet-400/10" : "hover:bg-muted/60"
                     }`}
                   >
                     <span className="text-[10px] text-foreground/40 shrink-0 w-5 tabular-nums font-semibold">
                       {idx + 1}/
                     </span>
                     <button
-                      onClick={isDone ? () => onSelectJob(job.id) : undefined}
-                      disabled={!isDone}
+                      onClick={() => onSelectJob(job.id)}
                       className={`font-medium truncate flex-1 text-left ${
                         isSelected
                           ? "text-violet-400"
-                          : isDone
-                            ? "text-muted-foreground hover:text-foreground cursor-pointer"
-                            : "text-muted-foreground/50 cursor-default"
+                          : "text-muted-foreground hover:text-foreground cursor-pointer"
                       }`}
                     >
                       {job.title}
                     </button>
                     <div className="shrink-0 flex items-center justify-end gap-2">
-                      {(job.file_size_bytes != null ||
-                        job.duration_seconds != null) && (
+                      {(job.file_size_bytes != null || job.duration_seconds != null) && (
                         <span className="text-[10px] text-muted-foreground/50 tabular-nums group-hover:hidden flex items-center gap-2">
-                          {job.duration_seconds != null && (
-                            <span>{formatDuration(job.duration_seconds)}</span>
-                          )}
-                          {job.file_size_bytes != null && (
-                            <span>{formatBytes(job.file_size_bytes)}</span>
-                          )}
+                          {job.duration_seconds != null && <span>{formatDuration(job.duration_seconds)}</span>}
+                          {job.file_size_bytes != null && <span>{formatBytes(job.file_size_bytes)}</span>}
                         </span>
                       )}
-                      {isDone && (
-                        <div className="hidden group-hover:flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-foreground gap-1"
-                            onClick={() =>
-                              downloadVideo(job.id).catch(() =>
-                                toast.error("Erreur de téléchargement."),
-                              )
-                            }
-                          >
-                            <DownloadIcon className="size-3" />
-                            Télécharger
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-violet-400 gap-1"
-                            onClick={() =>
-                              setQrJob({ id: job.id, title: job.title })
-                            }
-                          >
-                            <QrCodeIcon className="size-3" />
-                            QR
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-destructive gap-1"
-                            onClick={() =>
-                              setConfirmDeleteJob({
-                                id: job.id,
-                                title: job.title,
-                              })
-                            }
-                          >
-                            <TrashIcon className="size-3" />
-                            Supprimer
-                          </Button>
-                        </div>
-                      )}
+                      <div className="hidden group-hover:flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-foreground gap-1"
+                          onClick={() => downloadVideo(job.id).catch(() => toast.error("Erreur de téléchargement."))}
+                        >
+                          <DownloadIcon className="size-3" />
+                          Télécharger
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-violet-400 gap-1"
+                          onClick={() => setQrJob({ id: job.id, title: job.title })}
+                        >
+                          <QrCodeIcon className="size-3" />
+                          QR
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-destructive gap-1"
+                          onClick={() => setConfirmDeleteJob({ id: job.id, title: job.title })}
+                        >
+                          <TrashIcon className="size-3" />
+                          Supprimer
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -779,6 +809,9 @@ export default function Admin() {
     null,
   );
 
+  const [liveJobs, setLiveJobs] = useState<Record<string, Partial<RenderJob>>>({});
+  const sseCleanups = useRef<Record<string, () => void>>({});
+
   const [siteMetrics, setSiteMetrics] = useState<PublicMetrics | null>(null);
   const [moneyEdit, setMoneyEdit] = useState(false);
   const [moneyValue, setMoneyValue] = useState("");
@@ -857,6 +890,36 @@ export default function Admin() {
 
   useEffect(() => {
     fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    const activeIds = new Set(
+      users.flatMap((u) => (u.active_jobs ?? []).map((j) => j.job_id)),
+    );
+
+    for (const id of Object.keys(sseCleanups.current)) {
+      if (!activeIds.has(id)) {
+        sseCleanups.current[id]();
+        delete sseCleanups.current[id];
+      }
+    }
+
+    for (const id of activeIds) {
+      if (sseCleanups.current[id]) continue;
+      sseCleanups.current[id] = subscribeToJobCallback(id, (data) => {
+        setLiveJobs((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...data } }));
+        if (data.status && TERMINAL_STATUSES.has(data.status)) {
+          sseCleanups.current[id]?.();
+          delete sseCleanups.current[id];
+          setTimeout(() => fetchUsers(), 5_000);
+        }
+      });
+    }
+  }, [users]);
+
+  useEffect(() => {
+    const cleanups = sseCleanups.current;
+    return () => Object.values(cleanups).forEach((fn) => fn());
   }, []);
 
   useEffect(() => {
@@ -1157,6 +1220,10 @@ export default function Admin() {
                     selectedJobId={selectedJobId}
                     onJobDeleted={(id) => {
                       if (id === selectedJobId) setSelectedJobId(null);
+                    }}
+                    liveJobs={liveJobs}
+                    onCancelJob={(id) => {
+                      setLiveJobs((prev) => { const n = { ...prev }; delete n[id]; return n; });
                     }}
                   />
                 ))
