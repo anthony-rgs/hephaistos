@@ -73,7 +73,13 @@ export function subscribeToJob(jobId: string, dispatch: AppDispatch): () => void
         signal: controller.signal,
       });
 
-      if (!res.ok || !res.body) return;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = (typeof err?.detail === "string" ? err.detail : err?.detail?.message) ?? err?.message ?? "Job introuvable";
+        dispatch(updateJob({ status: "failed", error: msg }));
+        return;
+      }
+      if (!res.body) return;
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -103,6 +109,52 @@ export function subscribeToJob(jobId: string, dispatch: AppDispatch): () => void
       }
     } catch (err) {
       if ((err as { name?: string }).name !== "AbortError") console.error("SSE error", err);
+    }
+  })();
+
+  return () => controller.abort();
+}
+
+// ─── GET /jobs/{job_id}/stream (callback) ────────────────────────────────────
+
+export function subscribeToJobCallback(
+  jobId: string,
+  onUpdate: (data: Partial<RenderJob>) => void,
+): () => void {
+  const controller = new AbortController();
+
+  (async () => {
+    try {
+      const res = await fetchAuth(`${BASE_URL}/jobs/${jobId}/stream`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = (typeof err?.detail === "string" ? err.detail : err?.detail?.message) ?? err?.message ?? "Job introuvable";
+        onUpdate({ status: "failed", error: msg });
+        return;
+      }
+      if (!res.body) return;
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            onUpdate(JSON.parse(line.slice(6)) as Partial<RenderJob>);
+          } catch { /* ignore */ }
+        }
+      }
+    } catch (err) {
+      if ((err as { name?: string }).name !== "AbortError") { /* ignore */ }
     }
   })();
 

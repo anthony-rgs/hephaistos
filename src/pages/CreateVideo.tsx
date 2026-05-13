@@ -40,46 +40,6 @@ import {
   PauseIcon,
   PlayIcon,
 } from "lucide-react";
-import { getCookiesStatus, postCookies } from "@/utils/api/auth";
-
-// ─── Extension Chrome ─────────────────────────────────────────────────────────
-
-const EXTENSION_ID = import.meta.env.VITE_EXTENSION_ID as string;
-
-function getYoutubeCookiesFromExtension(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const cr = (
-      window as unknown as {
-        chrome?: {
-          runtime?: {
-            sendMessage: (...args: unknown[]) => void;
-            lastError?: { message: string };
-          };
-        };
-      }
-    ).chrome;
-    if (!cr?.runtime) {
-      reject(new Error("Extension Chrome non installée"));
-      return;
-    }
-    cr.runtime.sendMessage(
-      EXTENSION_ID,
-      { type: import.meta.env.VITE_EXTENSION_MESSAGE_TYPE },
-      (response: unknown) => {
-        if (cr.runtime?.lastError) {
-          reject(new Error(cr.runtime.lastError.message));
-          return;
-        }
-        const r = response as { cookies?: string } | null;
-        if (!r?.cookies) {
-          reject(new Error("Aucun cookie stocké dans l'extension"));
-          return;
-        }
-        resolve(r.cookies);
-      },
-    );
-  });
-}
 
 const STEP_TITLES = ["Template & mode", "Données & paramètres", "Rendu"];
 
@@ -176,7 +136,6 @@ export default function CreateVideo() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isLaunching, setIsLaunching] = useState(false);
-  const [isFetchingCookies, setIsFetchingCookies] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -258,17 +217,6 @@ export default function CreateVideo() {
     }
 
     try {
-      const cookiesStatus = await getCookiesStatus();
-      if (cookiesStatus.needs_refresh) {
-        setIsFetchingCookies(true);
-        try {
-          const cookies = await getYoutubeCookiesFromExtension();
-          await postCookies(cookies);
-        } finally {
-          setIsFetchingCookies(false);
-        }
-      }
-
       const body = buildRenderBody(createVideoState);
       const job = await startRender(body);
       dispatch(setJob(job));
@@ -282,7 +230,6 @@ export default function CreateVideo() {
       setLaunchError(detail ?? "Impossible de lancer le rendu.");
     } finally {
       setIsLaunching(false);
-      setIsFetchingCookies(false);
     }
   };
 
@@ -406,18 +353,8 @@ export default function CreateVideo() {
           currentStep={currentStep}
           onPrev={handlePrev}
           onNext={handleNext}
-          nextLabel={
-            currentStep === 2
-              ? isFetchingCookies
-                ? "Récupération des cookies..."
-                : "Lancer le rendu"
-              : undefined
-          }
-          nextDisabled={
-            (currentStep === 2 && !step2Valid) ||
-            isLaunching ||
-            isFetchingCookies
-          }
+          nextLabel={currentStep === 2 ? "Lancer le rendu" : undefined}
+          nextDisabled={(currentStep === 2 && !step2Valid) || isLaunching}
           showPrev={currentStep > 1}
           leftAction={step4Left}
           rightAction={
