@@ -4,12 +4,14 @@ import Navbar from "./Navbar";
 import MobileGuard from "./MobileGuard";
 import TokenPolling from "./TokenPolling";
 import { useAppSelector } from "@/store";
+import { useRenderNotifier } from "@/hooks/useRenderNotifier";
 import { Button } from "./ui/button";
 
 export default function Layout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const token = useAppSelector((s) => s.auth.token);
+  useRenderNotifier();
   const showBanner = !token && pathname === "/create-video";
 
   const [bannerMounted, setBannerMounted] = useState(showBanner);
