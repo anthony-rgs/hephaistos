@@ -446,18 +446,21 @@ export default function TemplatePreview({
               overflow: "hidden",
             }}
           >
-            <img
-              src={activeBgSrc}
+            {/* Wrapper div avec le filtre — plus fiable que filter sur img sur Chrome mobile */}
+            <div
               style={{
                 position: "absolute",
-                top: -80,
-                left: 0,
-                width: W + 160,
-                height: H + 160,
-                objectFit: "cover",
+                inset: -40,
                 filter: "blur(20px) brightness(0.5)",
+                WebkitFilter: "blur(20px) brightness(0.5)",
+                transform: "translateZ(0)",
               }}
-            />
+            >
+              <img
+                src={activeBgSrc}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            </div>
           </div>
         ) : (
           <div

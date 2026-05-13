@@ -39,17 +39,14 @@ import { useTheme } from "@/utils/useTheme";
 // ── Template Gif Carousel ────────────────────────────────────────────────────
 
 function TemplateGifCarousel({
+  active,
   onActiveChange,
+  onResetTimer,
 }: {
-  onActiveChange: (tpl: (typeof templates)[0]) => void;
+  active: number;
+  onActiveChange: (i: number) => void;
+  onResetTimer: () => void;
 }) {
-  const [active, setActive] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const onActiveChangeRef = useRef(onActiveChange);
-  useEffect(() => {
-    onActiveChangeRef.current = onActiveChange;
-  }, [onActiveChange]);
-
   const [carouselH, setCarouselH] = useState(() =>
     window.innerWidth < 768 ? 280 : 400,
   );
@@ -60,33 +57,15 @@ function TemplateGifCarousel({
   }, []);
   const carouselW = Math.round((carouselH * 9) / 16);
 
-  const goTo = useCallback((i: number) => {
-    setActive(i);
-    onActiveChangeRef.current(templates[i]);
-  }, []);
-
-  const startTimer = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      setActive((prev) => {
-        const next = (prev + 1) % templates.length;
-        onActiveChangeRef.current(templates[next]);
-        return next;
-      });
-    }, 4000);
-  }, []);
-
-  useEffect(() => {
-    startTimer();
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [startTimer]);
+  const goTo = (i: number) => {
+    onActiveChange(i);
+    onResetTimer();
+  };
 
   const go = (dir: 1 | -1) => {
     const next = (active + dir + templates.length) % templates.length;
-    goTo(next);
-    startTimer();
+    onActiveChange(next);
+    onResetTimer();
   };
 
   return (
@@ -116,10 +95,7 @@ function TemplateGifCarousel({
           {templates.map((_, i) => (
             <button
               key={i}
-              onClick={() => {
-                goTo(i);
-                startTimer();
-              }}
+              onClick={() => goTo(i)}
               className={`h-1.5 rounded-full transition-all ${
                 i === active
                   ? "w-6 bg-foreground"
@@ -227,16 +203,19 @@ const STEPS = [
 function StepItem({
   s,
   i,
-  activeTemplate,
-  setActiveTemplate,
+  activeTemplateIdx,
+  onActiveChange,
+  onResetTimer,
 }: {
   s: (typeof STEPS)[number];
   i: number;
-  activeTemplate: (typeof templates)[0];
-  setActiveTemplate: (t: (typeof templates)[0]) => void;
+  activeTemplateIdx: number;
+  onActiveChange: (i: number) => void;
+  onResetTimer: () => void;
 }) {
   const { ref, visible } = useInView(0.1);
   const { isDark } = useTheme();
+  const activeTemplate = templates[activeTemplateIdx];
   return (
     <div
       ref={ref}
@@ -277,7 +256,7 @@ function StepItem({
       </div>
       <div className="flex-1 flex justify-center">
         {"carousel" in s && s.carousel ? (
-          <TemplateGifCarousel onActiveChange={setActiveTemplate} />
+          <TemplateGifCarousel active={activeTemplateIdx} onActiveChange={onActiveChange} onResetTimer={onResetTimer} />
         ) : (
           <img
             src={isDark ? s.imageLight : s.imageDark}
@@ -294,7 +273,22 @@ function StepItem({
 
 function WorkflowSection() {
   const { isDark } = useTheme();
-  const [activeTemplate, setActiveTemplate] = useState(templates[0]);
+  const [activeTemplateIdx, setActiveTemplateIdx] = useState(0);
+  const activeTemplate = templates[activeTemplateIdx];
+  const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCarouselTimer = useCallback(() => {
+    if (carouselIntervalRef.current) clearInterval(carouselIntervalRef.current);
+    carouselIntervalRef.current = setInterval(() => {
+      setActiveTemplateIdx((prev) => (prev + 1) % templates.length);
+    }, 4000);
+  }, []);
+
+  useEffect(() => {
+    startCarouselTimer();
+    return () => { if (carouselIntervalRef.current) clearInterval(carouselIntervalRef.current); };
+  }, [startCarouselTimer]);
+
   const sectionRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
   const [cardWidth, setCardWidth] = useState(0);
@@ -385,8 +379,9 @@ function WorkflowSection() {
             key={s.step}
             s={s}
             i={i}
-            activeTemplate={activeTemplate}
-            setActiveTemplate={setActiveTemplate}
+            activeTemplateIdx={activeTemplateIdx}
+            onActiveChange={setActiveTemplateIdx}
+            onResetTimer={startCarouselTimer}
           />
         ))}
       </section>
@@ -501,7 +496,7 @@ function WorkflowSection() {
                   {/* Visuel */}
                   <div className="flex-1 h-[70%] flex items-center justify-center">
                     {"carousel" in s && s.carousel ? (
-                      <TemplateGifCarousel onActiveChange={setActiveTemplate} />
+                      <TemplateGifCarousel active={activeTemplateIdx} onActiveChange={setActiveTemplateIdx} onResetTimer={startCarouselTimer} />
                     ) : (
                       <img
                         src={isDark ? s.imageLight : s.imageDark}
