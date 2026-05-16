@@ -58,7 +58,7 @@ export default function VideoFields({ clipIndex }: { clipIndex: number }) {
             <Button
               size="icon-sm"
               variant="ghost"
-              className="shrink-0 text-teal-400 hover:text-teal-400"
+              className="shrink-0 text-violet-400 hover:text-violet-400"
               onClick={() => setOpen(true)}
               title="Choisir une vidéo"
             >
