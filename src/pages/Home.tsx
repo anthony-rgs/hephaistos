@@ -938,13 +938,14 @@ export default function Home() {
             { value: metrics ? String(metrics.total_clips_used) : "—", label: "clips utilisés" },
             { value: metrics ? String(metrics.total_videos_created) : "—", label: "vidéos créées" },
             { value: metrics ? formatDuration(metrics.total_duration_seconds) : "—", label: "de contenu" },
+            { value: metrics ? `+${metrics.money_earned}€` : "—", label: "générés" },
           ].map(({ value, label }, i) => (
             <div
               key={label}
               className={`flex flex-col items-center gap-0.5 px-5 py-3
-                ${i % 2 === 0 && i !== 4 ? "border-r border-border" : ""}
+                ${i % 2 === 0 ? "border-r border-border" : ""}
                 ${i < 4 ? "border-b border-border sm:border-b-0" : ""}
-                ${i > 0 && i < 4 ? "sm:border-r sm:border-border" : ""}
+                ${i > 0 && i < 5 ? "sm:border-r sm:border-border" : ""}
               `}
             >
               <span className="text-lg font-black tracking-tight uppercase">
