@@ -11,6 +11,7 @@ import {
   setTemplate,
   setModeValue,
   applyTemplateDefaults,
+  resetStep2,
 } from "@/store/createVideoSlice";
 
 import {
@@ -184,7 +185,10 @@ export default function CreateVideo() {
     };
   }, [videoUrl]);
 
-  const handlePrev = () => setCurrentStep((s) => Math.max(1, s - 1));
+  const handlePrev = () => {
+    if (currentStep === 2) dispatch(resetStep2());
+    setCurrentStep((s) => Math.max(1, s - 1));
+  };
 
   const handleNext = async () => {
     if (currentStep === 2) {

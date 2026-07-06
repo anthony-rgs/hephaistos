@@ -285,6 +285,18 @@ const createVideoSlice = createSlice({
     ) {
       state.highlightPreviewActiveIndex = action.payload;
     },
+    resetStep2(state) {
+      state.globalTitle = { ...defaultGlobalTitle };
+      state.clips = [makeClip(0)];
+      state.defaultDuration = initialState.defaultDuration;
+      state.background = initialState.background;
+      state.videoMargin = initialState.videoMargin;
+      state.spacing = initialState.spacing;
+      state.smoothTransition = { ...initialState.smoothTransition };
+      state.watermark = { ...initialState.watermark };
+      state.highlightActive = { ...initialState.highlightActive };
+      state.teaserTop = initialState.teaserTop;
+    },
   },
 });
 
@@ -309,6 +321,7 @@ export const {
   setWatermark,
   setHighlightActive,
   setHighlightPreviewActiveIndex,
+  resetStep2,
 } = createVideoSlice.actions;
 
 export default createVideoSlice.reducer;
