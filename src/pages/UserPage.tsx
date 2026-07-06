@@ -18,11 +18,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { logout } from "@/store/authSlice";
-import {
-  getMe,
-  type MeJob,
-  type MeResponse,
-} from "@/utils/api/auth";
+import { getMe, type MeJob, type MeResponse } from "@/utils/api/auth";
 import {
   getVideoObjectUrl,
   downloadVideo,
@@ -131,7 +127,8 @@ function JobRow({
   const message = liveData?.message;
   const liveClips = liveData?.clips;
   const currentClip = liveClips?.find((c) => c.status === "downloading");
-  const progressLabel = message ?? (currentClip ? `Clip : ${currentClip.title}` : null);
+  const progressLabel =
+    message ?? (currentClip ? `Clip : ${currentClip.title}` : null);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -194,9 +191,11 @@ function JobRow({
                 onClick={handleCancel}
                 disabled={cancelling}
               >
-                {cancelling
-                  ? <LoaderIcon className="size-3 animate-spin" />
-                  : <span>Annuler</span>}
+                {cancelling ? (
+                  <LoaderIcon className="size-3 animate-spin" />
+                ) : (
+                  <span>Annuler</span>
+                )}
               </Button>
             </div>
           )}
@@ -215,10 +214,15 @@ function JobRow({
 
           {isDone && (
             <div className="shrink-0 flex items-center gap-2">
-              {(job.file_size_bytes != null || job.duration_seconds != null) && (
+              {(job.file_size_bytes != null ||
+                job.duration_seconds != null) && (
                 <span className="text-[10px] text-muted-foreground/50 tabular-nums group-hover:hidden flex items-center gap-2">
-                  {job.duration_seconds != null && <span>{formatDuration(job.duration_seconds)}</span>}
-                  {job.file_size_bytes != null && <span>{formatBytes(job.file_size_bytes)}</span>}
+                  {job.duration_seconds != null && (
+                    <span>{formatDuration(job.duration_seconds)}</span>
+                  )}
+                  {job.file_size_bytes != null && (
+                    <span>{formatBytes(job.file_size_bytes)}</span>
+                  )}
                 </span>
               )}
               <div className="hidden group-hover:flex items-center gap-1">
@@ -226,7 +230,11 @@ function JobRow({
                   size="sm"
                   variant="ghost"
                   className="h-6 px-2 text-[10px] font-semibold text-muted-foreground hover:text-foreground gap-1"
-                  onClick={() => downloadVideo(job.job_id).catch(() => toast.error("Erreur de téléchargement."))}
+                  onClick={() =>
+                    downloadVideo(job.job_id).catch(() =>
+                      toast.error("Erreur de téléchargement."),
+                    )
+                  }
                 >
                   <DownloadIcon className="size-3" />
                   Télécharger
@@ -278,16 +286,19 @@ export default function UserPage() {
   const storeUsername = useAppSelector((s) => s.auth.username);
 
   const [me, setMe] = useState<MeResponse | null>(null);
-  const [liveJobs, setLiveJobs] = useState<Record<string, Partial<RenderJob>>>({});
+  const [liveJobs, setLiveJobs] = useState<Record<string, Partial<RenderJob>>>(
+    {},
+  );
   const sseCleanups = useRef<Record<string, () => void>>({});
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const videoUrlRef = useRef<string | null>(null);
 
-
   const refreshMe = () =>
-    getMe().then(setMe).catch(() => {});
+    getMe()
+      .then(setMe)
+      .catch(() => {});
 
   useEffect(() => {
     getMe()
@@ -303,7 +314,10 @@ export default function UserPage() {
     activeIds.forEach((id) => {
       if (sseCleanups.current[id]) return;
       sseCleanups.current[id] = subscribeToJobCallback(id, (update) => {
-        setLiveJobs((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...update } }));
+        setLiveJobs((prev) => ({
+          ...prev,
+          [id]: { ...(prev[id] ?? {}), ...update },
+        }));
         if (
           update.status === "done" ||
           update.status === "failed" ||
@@ -499,7 +513,10 @@ export default function UserPage() {
                   me.features.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {me.features.map((f) => (
-                        <FeatureBadge key={f} label={f} />
+                        <FeatureBadge
+                          key={f}
+                          label={f}
+                        />
                       ))}
                     </div>
                   ) : (
@@ -515,7 +532,9 @@ export default function UserPage() {
               {/* Quota jobs */}
               {(() => {
                 const max = me?.max_jobs ?? 0;
-                const atMax = me ? (me.done_jobs.length + me.active_jobs.length) >= max : false;
+                const atMax = me
+                  ? me.done_jobs.length + me.active_jobs.length >= max
+                  : false;
                 return (
                   <div className="rounded-lg border border-border bg-muted/10 px-3 py-2.5 flex flex-col gap-1">
                     <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
@@ -528,7 +547,7 @@ export default function UserPage() {
                         </span>
                         {atMax && (
                           <span className="text-[9px] text-muted-foreground leading-relaxed">
-                            Le prochain supprimera l'ancien.
+                            Le prochain supprimera le plus ancien.
                           </span>
                         )}
                       </>
@@ -538,7 +557,6 @@ export default function UserPage() {
                   </div>
                 );
               })()}
-
             </div>
           </div>
 
@@ -602,7 +620,9 @@ export default function UserPage() {
                         m
                           ? {
                               ...m,
-                              active_jobs: m.active_jobs.filter((j) => j.job_id !== id),
+                              active_jobs: m.active_jobs.filter(
+                                (j) => j.job_id !== id,
+                              ),
                             }
                           : null,
                       );
