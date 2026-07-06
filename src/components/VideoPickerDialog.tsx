@@ -1,25 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
-import { SearchIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAppDispatch } from "@/store";
 import { setAllDurations } from "@/store/createVideoSlice";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { Dialog, DialogContent } from "./ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
+import SectionHeader from "./SectionHeader";
+import VideoSearchPanel from "./VideoSearchPanel";
+import VideoSelectionFields from "./VideoSelectionFields";
+import { type VideoResult } from "./VideoResultItem";
 
 // ─── YT IFrame API ────────────────────────────────────────────────────────────
 
 interface YTPlayer {
   getCurrentTime(): number;
   destroy(): void;
+  pauseVideo(): void;
 }
 
 declare global {
@@ -46,18 +42,6 @@ const INVIDIOUS_INSTANCES = [
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface VideoResult {
-  type: string;
-  videoId: string;
-  title: string;
-  author: string;
-  authorVerified: boolean;
-  lengthSeconds: number;
-  viewCountText: string;
-  publishedText: string;
-  videoThumbnails: { url: string; quality: string }[];
-}
-
 export interface VideoSelection {
   url: string;
   start: string;
@@ -66,15 +50,6 @@ export interface VideoSelection {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDuration(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0)
-    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 function secondsToTimecode(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -82,20 +57,12 @@ function secondsToTimecode(seconds: number) {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-function thumbnail(videoId: string) {
-  return `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
-}
-
 function stripStreams(title: string): string {
   return title.replace(/\s*\(\d+(?:[.,]\d+)?b\)\s*$/i, "").trim();
 }
 
 function extractVideoId(url: string): string | null {
-  try {
-    return new URL(url).searchParams.get("v");
-  } catch {
-    return null;
-  }
+  try { return new URL(url).searchParams.get("v"); } catch { return null; }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -143,50 +110,77 @@ export default function VideoPickerDialog({
   const [syncTimecode, setSyncTimecode] = useState(true);
   const syncTimecodeRef = useRef(true);
 
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
+  const pausePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cancelInitRef = useRef<(() => void) | null>(null);
 
-  // Vidéo active : depuis la sélection en cours, sinon depuis l'URL déjà confirmée
   const activeVideoId = selected?.videoId ?? extractVideoId(initial.url);
 
-  // ── YT Player pour la sync du timecode AUTO ───────────────────────────────
+  // ── YT Player ──────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (!activeVideoId || !open) return;
-
+  const handleContainer = useCallback((node: HTMLDivElement | null) => {
+    cancelInitRef.current?.();
+    cancelInitRef.current = null;
+    if (pausePollRef.current) { clearInterval(pausePollRef.current); pausePollRef.current = null; }
     playerRef.current?.destroy();
     playerRef.current = null;
 
-    let hasPlayed = false;
+    if (!node || !activeVideoId) return;
+
+    let cancelled = false;
+    cancelInitRef.current = () => { cancelled = true; };
+
+    const clearPausePoll = () => {
+      if (pausePollRef.current) { clearInterval(pausePollRef.current); pausePollRef.current = null; }
+    };
 
     const initPlayer = () => {
-      if (!iframeRef.current || !window.YT?.Player) return;
-      playerRef.current = new window.YT.Player(iframeRef.current, {
+      if (cancelled || !window.YT?.Player) return;
+      node.innerHTML = '';
+      playerRef.current = new window.YT.Player(node, {
+        videoId: activeVideoId,
+        width: "100%",
+        height: "100%",
+        playerVars: { rel: 0, enablejsapi: 1 },
         events: {
           onStateChange: (e: { data: number }) => {
-            if (e.data === 1) hasPlayed = true;
-            if (e.data === 3 && hasPlayed && syncTimecodeRef.current && playerRef.current)
-              setStart(secondsToTimecode(Math.floor(playerRef.current.getCurrentTime())));
+            if (e.data === 3 && playerRef.current) {
+              clearPausePoll();
+              const t = secondsToTimecode(Math.floor(playerRef.current.getCurrentTime()));
+              if (syncTimecodeRef.current) setStart(t);
+            }
+            if (e.data === 2) {
+              clearPausePoll();
+              let lastTime = playerRef.current?.getCurrentTime() ?? 0;
+              pausePollRef.current = setInterval(() => {
+                const current = playerRef.current?.getCurrentTime() ?? lastTime;
+                if (Math.abs(current - lastTime) > 0.5) {
+                  const t = secondsToTimecode(Math.floor(current));
+                  if (syncTimecodeRef.current) setStart(t);
+                }
+                lastTime = current;
+              }, 150);
+            } else {
+              clearPausePoll();
+            }
           },
         },
       });
     };
 
     loadYTScript();
-    if (window.YT?.Player) {
-      initPlayer();
-    } else {
+    if (window.YT?.Player) initPlayer();
+    else {
       const prev = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => { prev?.(); initPlayer(); };
     }
+  }, [activeVideoId]);
 
-    return () => {
-      playerRef.current?.destroy();
-      playerRef.current = null;
-    };
-  }, [activeVideoId, open]);
+  useEffect(() => {
+    if (!open) playerRef.current?.pauseVideo();
+  }, [open]);
 
-  // ── Recherche ───────────────────────────────────────────────────────────────
+  // ── Search ─────────────────────────────────────────────────────────────────
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -199,11 +193,7 @@ export default function VideoPickerDialog({
           params: { q: query, type: "video" },
           timeout: 5000,
         });
-        setResults(
-          (data as VideoResult[])
-            .filter((r) => r.type === "video")
-            .slice(0, 10),
-        );
+        setResults((data as VideoResult[]).filter((r) => r.type === "video").slice(0, 10));
         setLoading(false);
         return;
       } catch {
@@ -233,125 +223,32 @@ export default function VideoPickerDialog({
     onOpenChange(false);
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[72dvw] p-0 gap-0 overflow-hidden">
-        {/* Header */}
         <div className="flex items-center px-6 py-4 border-b shrink-0">
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
-              <span className="w-4 h-px bg-violet-400" />
-              <span className="text-[10px] font-bold tracking-[0.2em] text-violet-400 uppercase">
-                Vidéo
-              </span>
-            </div>
-            <h2 className="text-base font-semibold tracking-tight leading-none">
-              Choisir une vidéo
-            </h2>
-          </div>
+          <SectionHeader eyebrow="Vidéo" title="Choisir une vidéo" />
         </div>
 
-        {/* Body */}
         <div className="grid grid-cols-[2fr_3fr] h-[80vh] min-h-0 overflow-hidden">
-          {/* Colonne gauche — recherche */}
-          <div className="flex min-h-0 flex-col gap-3 border-r p-4">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  placeholder="Rechercher..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pr-7"
-                />
-                {query && (
-                  <button
-                    onClick={() => setQuery("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    tabIndex={-1}
-                  >
-                    <XIcon className="size-3.5" />
-                  </button>
-                )}
-              </div>
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={handleSearch}
-                disabled={loading}
-                tabIndex={-1}
-              >
-                <SearchIcon className="size-4" />
-              </Button>
-            </div>
+          <VideoSearchPanel
+            query={query}
+            setQuery={setQuery}
+            results={results}
+            loading={loading}
+            error={error}
+            selectedId={selected?.videoId ?? null}
+            onSearch={handleSearch}
+            onSelect={handleSelect}
+          />
 
-            {error && <p className="text-xs text-destructive">{error}</p>}
-
-            <div
-              className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto"
-              tabIndex={-1}
-            >
-              {results.map((video) => (
-                <button
-                  tabIndex={-1}
-                  key={video.videoId}
-                  onClick={() => handleSelect(video)}
-                  className={`flex items-center gap-2.5 rounded-lg p-2 text-left transition-colors ${
-                    selected?.videoId === video.videoId
-                      ? "bg-violet-400/10 ring-1 ring-violet-400/30"
-                      : "hover:bg-violet-400/5"
-                  }`}
-                >
-                  <div className="relative shrink-0 w-20 aspect-video rounded overflow-hidden bg-muted">
-                    <img
-                      src={thumbnail(video.videoId)}
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute bottom-0.5 right-0.5 bg-black/80 text-white text-[9px] font-mono px-0.5 rounded">
-                      {formatDuration(video.lengthSeconds)}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <p className="text-xs font-medium leading-snug line-clamp-2">
-                      {video.title}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {video.author}
-                      {video.authorVerified && <span className="ml-1">✓</span>}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {video.viewCountText}
-                    </p>
-                  </div>
-                </button>
-              ))}
-
-              {results.length === 0 && !loading && (
-                <p className="text-xs text-muted-foreground text-center py-8">
-                  Aucun résultat
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Colonne droite — preview + champs */}
           <div className="flex flex-col min-h-0 p-4 gap-3">
             <div className="flex-1 overflow-y-auto flex flex-col gap-4">
               {activeVideoId ? (
                 <div className="aspect-video w-full rounded-lg overflow-hidden bg-black shrink-0">
-                  {/* key=activeVideoId → remount de l'iframe si la vidéo change */}
-                  <iframe
-                    key={activeVideoId}
-                    ref={iframeRef}
-                    src={`https://www.youtube.com/embed/${activeVideoId}?enablejsapi=1&rel=0&origin=${encodeURIComponent(window.location.origin)}`}
-                    className="w-full h-full"
-                    allow="autoplay; encrypted-media; fullscreen"
-                    allowFullScreen
-                  />
+                  <div ref={handleContainer} className="w-full h-full" />
                 </div>
               ) : (
                 <div className="aspect-video w-full rounded-lg border border-dashed border-border flex items-center justify-center shrink-0">
@@ -361,121 +258,31 @@ export default function VideoPickerDialog({
                 </div>
               )}
 
-              <div className="grid grid-cols-[7rem_2fr_0.5fr] items-center gap-x-3 gap-y-3">
-                <Label className="justify-end text-muted-foreground">
-                  URL vidéo
-                </Label>
-                <Input
-                  tabIndex={-1}
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://youtube.com/watch?v=..."
-                />
-                <div />
-
-                <Label className="justify-end text-muted-foreground">
-                  Début extrait
-                </Label>
-                <Input
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                  placeholder="00:00:00"
-                />
-                <div className="flex items-center justify-end gap-1.5">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          tabIndex={-1}
-                          onClick={() => {
-                            const next = !syncTimecode;
-                            setSyncTimecode(next);
-                            syncTimecodeRef.current = next;
-                          }}
-                          className={`shrink-0 flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors border ${
-                            syncTimecode
-                              ? "border-violet-400/40 bg-violet-400/10 text-violet-400"
-                              : "border-border text-muted-foreground"
-                          }`}
-                        >
-                          AUTO
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        {syncTimecode
-                          ? "Timecode synchronisé — cliquer pour désactiver"
-                          : "Timecode manuel — cliquer pour activer la sync"}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          tabIndex={-1}
-                          className="shrink-0 text-muted-foreground"
-                        >
-                          <span className="text-xs font-medium">i</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        heures:minutes:secondes
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-
-                <Label className="justify-end text-muted-foreground">
-                  Durée (s)
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value))}
-                  placeholder="30"
-                />
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        tabIndex={-1}
-                        onClick={() => {
-                          dispatch(setAllDurations(duration));
-                          toast.success(
-                            `Durée de ${duration}s appliquée à tous les extraits`,
-                          );
-                        }}
-                        className="w-full flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors border border-border text-muted-foreground hover:border-violet-400/40 hover:text-violet-400 hover:bg-violet-400/5"
-                      >
-                        TOUS
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      Appliquer cette durée à tous les extraits (y compris les
-                      futurs)
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+              <VideoSelectionFields
+                url={url}
+                onUrlChange={setUrl}
+                start={start}
+                onStartChange={setStart}
+                duration={duration}
+                onDurationChange={setDuration}
+                syncTimecode={syncTimecode}
+                onToggleSync={() => {
+                  const next = !syncTimecode;
+                  setSyncTimecode(next);
+                  syncTimecodeRef.current = next;
+                }}
+                onApplyAllDurations={() => {
+                  dispatch(setAllDurations(duration));
+                  toast.success(`Durée de ${duration}s appliquée à tous les extraits`);
+                }}
+              />
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t">
-              <Button
-                size="sm"
-                variant="outline"
-                tabIndex={-1}
-                onClick={() => onOpenChange(false)}
-              >
+              <Button size="sm" variant="outline" tabIndex={-1} onClick={() => onOpenChange(false)}>
                 Annuler
               </Button>
-              <Button
-                size="sm"
-                onClick={handleConfirm}
-                disabled={!url}
-              >
+              <Button size="sm" onClick={handleConfirm} disabled={!url}>
                 Confirmer
               </Button>
             </div>
