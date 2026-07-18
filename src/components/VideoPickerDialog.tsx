@@ -20,7 +20,12 @@ interface YTPlayer {
 
 declare global {
   interface Window {
-    YT?: { Player: new (el: HTMLElement | HTMLIFrameElement, opts: object) => YTPlayer };
+    YT?: {
+      Player: new (
+        el: HTMLElement | HTMLIFrameElement,
+        opts: object,
+      ) => YTPlayer;
+    };
     onYouTubeIframeAPIReady?: () => void;
   }
 }
@@ -62,7 +67,11 @@ function stripStreams(title: string): string {
 }
 
 function extractVideoId(url: string): string | null {
-  try { return new URL(url).searchParams.get("v"); } catch { return null; }
+  try {
+    return new URL(url).searchParams.get("v");
+  } catch {
+    return null;
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -118,67 +127,90 @@ export default function VideoPickerDialog({
 
   // ── YT Player ──────────────────────────────────────────────────────────────
 
-  const handleContainer = useCallback((node: HTMLDivElement | null) => {
-    cancelInitRef.current?.();
-    cancelInitRef.current = null;
-    if (pausePollRef.current) { clearInterval(pausePollRef.current); pausePollRef.current = null; }
-    playerRef.current?.destroy();
-    playerRef.current = null;
+  const handleContainer = useCallback(
+    (node: HTMLDivElement | null) => {
+      cancelInitRef.current?.();
+      cancelInitRef.current = null;
+      if (pausePollRef.current) {
+        clearInterval(pausePollRef.current);
+        pausePollRef.current = null;
+      }
+      playerRef.current?.destroy();
+      playerRef.current = null;
 
-    if (!node || !activeVideoId) return;
+      if (!node || !activeVideoId) return;
 
-    let cancelled = false;
-    cancelInitRef.current = () => { cancelled = true; };
+      let cancelled = false;
+      cancelInitRef.current = () => {
+        cancelled = true;
+      };
 
-    const clearPausePoll = () => {
-      if (pausePollRef.current) { clearInterval(pausePollRef.current); pausePollRef.current = null; }
-    };
+      const clearPausePoll = () => {
+        if (pausePollRef.current) {
+          clearInterval(pausePollRef.current);
+          pausePollRef.current = null;
+        }
+      };
 
-    const initPlayer = () => {
-      if (cancelled || !window.YT?.Player) return;
-      node.innerHTML = '';
-      playerRef.current = new window.YT.Player(node, {
-        videoId: activeVideoId,
-        width: "100%",
-        height: "100%",
-        playerVars: { rel: 0, enablejsapi: 1 },
-        events: {
-          onStateChange: (e: { data: number }) => {
-            if (e.data === 3 && playerRef.current) {
-              clearPausePoll();
-              const t = secondsToTimecode(Math.floor(playerRef.current.getCurrentTime()));
-              if (syncTimecodeRef.current) setStart(t);
-            }
-            if (e.data === 2) {
-              clearPausePoll();
-              let lastTime = playerRef.current?.getCurrentTime() ?? 0;
-              pausePollRef.current = setInterval(() => {
-                const current = playerRef.current?.getCurrentTime() ?? lastTime;
-                if (Math.abs(current - lastTime) > 0.5) {
-                  const t = secondsToTimecode(Math.floor(current));
-                  if (syncTimecodeRef.current) setStart(t);
-                }
-                lastTime = current;
-              }, 150);
-            } else {
-              clearPausePoll();
-            }
+      const initPlayer = () => {
+        if (cancelled || !window.YT?.Player) return;
+        node.innerHTML = "";
+        playerRef.current = new window.YT.Player(node, {
+          videoId: activeVideoId,
+          width: "100%",
+          height: "100%",
+          playerVars: { rel: 0, enablejsapi: 1 },
+          events: {
+            onStateChange: (e: { data: number }) => {
+              if (e.data === 3 && playerRef.current) {
+                clearPausePoll();
+                const t = secondsToTimecode(
+                  Math.floor(playerRef.current.getCurrentTime()),
+                );
+                if (syncTimecodeRef.current) setStart(t);
+              }
+              if (e.data === 2) {
+                clearPausePoll();
+                let lastTime = playerRef.current?.getCurrentTime() ?? 0;
+                pausePollRef.current = setInterval(() => {
+                  const current =
+                    playerRef.current?.getCurrentTime() ?? lastTime;
+                  if (Math.abs(current - lastTime) > 0.5) {
+                    const t = secondsToTimecode(Math.floor(current));
+                    if (syncTimecodeRef.current) setStart(t);
+                  }
+                  lastTime = current;
+                }, 150);
+              } else {
+                clearPausePoll();
+              }
+            },
           },
-        },
-      });
-    };
+        });
+      };
 
-    loadYTScript();
-    if (window.YT?.Player) initPlayer();
-    else {
-      const prev = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => { prev?.(); initPlayer(); };
-    }
-  }, [activeVideoId]);
+      loadYTScript();
+      if (window.YT?.Player) initPlayer();
+      else {
+        const prev = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+          prev?.();
+          initPlayer();
+        };
+      }
+    },
+    [activeVideoId],
+  );
 
   useEffect(() => {
-    if (!open) playerRef.current?.pauseVideo();
-  }, [open]);
+    if (open) {
+      setUrl(initial.url);
+      setStart(initial.start);
+      setDuration(initial.duration);
+    } else {
+      playerRef.current?.pauseVideo();
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Search ─────────────────────────────────────────────────────────────────
 
@@ -190,10 +222,14 @@ export default function VideoPickerDialog({
     for (const instance of INVIDIOUS_INSTANCES) {
       try {
         const { data } = await axios.get(`${instance}/api/v1/search`, {
-          params: { q: query, type: "video" },
+          params: { q: query, type: "video", region: "US" },
           timeout: 5000,
         });
-        setResults((data as VideoResult[]).filter((r) => r.type === "video").slice(0, 10));
+        setResults(
+          (data as VideoResult[])
+            .filter((r) => r.type === "video")
+            .slice(0, 10),
+        );
         setLoading(false);
         return;
       } catch {
@@ -226,10 +262,16 @@ export default function VideoPickerDialog({
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+    >
       <DialogContent className="sm:max-w-[72dvw] p-0 gap-0 overflow-hidden">
         <div className="flex items-center px-6 py-4 border-b shrink-0">
-          <SectionHeader eyebrow="Vidéo" title="Choisir une vidéo" />
+          <SectionHeader
+            eyebrow="Vidéo"
+            title="Choisir une vidéo"
+          />
         </div>
 
         <div className="grid grid-cols-[2fr_3fr] h-[80vh] min-h-0 overflow-hidden">
@@ -248,7 +290,10 @@ export default function VideoPickerDialog({
             <div className="flex-1 overflow-y-auto flex flex-col gap-4">
               {activeVideoId ? (
                 <div className="aspect-video w-full rounded-lg overflow-hidden bg-black shrink-0">
-                  <div ref={handleContainer} className="w-full h-full" />
+                  <div
+                    ref={handleContainer}
+                    className="w-full h-full"
+                  />
                 </div>
               ) : (
                 <div className="aspect-video w-full rounded-lg border border-dashed border-border flex items-center justify-center shrink-0">
@@ -273,16 +318,27 @@ export default function VideoPickerDialog({
                 }}
                 onApplyAllDurations={() => {
                   dispatch(setAllDurations(duration));
-                  toast.success(`Durée de ${duration}s appliquée à tous les extraits`);
+                  toast.success(
+                    `Durée de ${duration}s appliquée à tous les extraits`,
+                  );
                 }}
               />
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t">
-              <Button size="sm" variant="outline" tabIndex={-1} onClick={() => onOpenChange(false)}>
+              <Button
+                size="sm"
+                variant="outline"
+                tabIndex={-1}
+                onClick={() => onOpenChange(false)}
+              >
                 Annuler
               </Button>
-              <Button size="sm" onClick={handleConfirm} disabled={!url}>
+              <Button
+                size="sm"
+                onClick={handleConfirm}
+                disabled={!url}
+              >
                 Confirmer
               </Button>
             </div>
