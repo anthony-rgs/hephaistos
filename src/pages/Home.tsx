@@ -256,7 +256,11 @@ function StepItem({
       </div>
       <div className="flex-1 flex justify-center">
         {"carousel" in s && s.carousel ? (
-          <TemplateGifCarousel active={activeTemplateIdx} onActiveChange={onActiveChange} onResetTimer={onResetTimer} />
+          <TemplateGifCarousel
+            active={activeTemplateIdx}
+            onActiveChange={onActiveChange}
+            onResetTimer={onResetTimer}
+          />
         ) : (
           <img
             src={isDark ? s.imageLight : s.imageDark}
@@ -275,7 +279,9 @@ function WorkflowSection() {
   const { isDark } = useTheme();
   const [activeTemplateIdx, setActiveTemplateIdx] = useState(0);
   const activeTemplate = templates[activeTemplateIdx];
-  const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
 
   const startCarouselTimer = useCallback(() => {
     if (carouselIntervalRef.current) clearInterval(carouselIntervalRef.current);
@@ -286,7 +292,10 @@ function WorkflowSection() {
 
   useEffect(() => {
     startCarouselTimer();
-    return () => { if (carouselIntervalRef.current) clearInterval(carouselIntervalRef.current); };
+    return () => {
+      if (carouselIntervalRef.current)
+        clearInterval(carouselIntervalRef.current);
+    };
   }, [startCarouselTimer]);
 
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -496,7 +505,11 @@ function WorkflowSection() {
                   {/* Visuel */}
                   <div className="flex-1 h-[70%] flex items-center justify-center">
                     {"carousel" in s && s.carousel ? (
-                      <TemplateGifCarousel active={activeTemplateIdx} onActiveChange={setActiveTemplateIdx} onResetTimer={startCarouselTimer} />
+                      <TemplateGifCarousel
+                        active={activeTemplateIdx}
+                        onActiveChange={setActiveTemplateIdx}
+                        onResetTimer={startCarouselTimer}
+                      />
                     ) : (
                       <img
                         src={isDark ? s.imageLight : s.imageDark}
@@ -807,7 +820,9 @@ export default function Home() {
   const [metrics, setMetrics] = useState<PublicMetrics | null>(null);
 
   useEffect(() => {
-    getPublicMetrics().then(setMetrics).catch(() => {});
+    getPublicMetrics()
+      .then(setMetrics)
+      .catch(() => {});
   }, []);
 
   const isMobileSafari =
@@ -922,7 +937,7 @@ export default function Home() {
               className="h-12 w-full sm:w-auto px-8 text-sm font-bold tracking-wide uppercase"
               onClick={() => navigate("/user")}
             >
-              Dernier rendu
+              Mon profil
             </Button>
           )}
         </div>
@@ -935,10 +950,24 @@ export default function Home() {
           {[
             { value: "100%", label: "personnalisable" },
             { value: "5 MIN", label: "de rendu" },
-            { value: metrics ? String(metrics.total_clips_used) : "—", label: "clips utilisés" },
-            { value: metrics ? String(metrics.total_videos_created) : "—", label: "vidéos créées" },
-            { value: metrics ? formatDuration(metrics.total_duration_seconds) : "—", label: "de contenu" },
-            { value: metrics ? `+${metrics.money_earned}€` : "—", label: "générés" },
+            {
+              value: metrics ? String(metrics.total_clips_used) : "—",
+              label: "clips utilisés",
+            },
+            {
+              value: metrics ? String(metrics.total_videos_created) : "—",
+              label: "vidéos créées",
+            },
+            {
+              value: metrics
+                ? formatDuration(metrics.total_duration_seconds)
+                : "—",
+              label: "de contenu",
+            },
+            {
+              value: metrics ? `+${metrics.money_earned}€` : "—",
+              label: "générés",
+            },
           ].map(({ value, label }, i) => (
             <div
               key={label}
