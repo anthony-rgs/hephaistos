@@ -20,6 +20,7 @@ import {
   ActivityIcon,
   LayersIcon,
   BanknoteIcon,
+  MailIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -172,6 +173,7 @@ interface UserFormData {
   is_admin: boolean;
   features: string;
   max_jobs: number;
+  email: string;
 }
 
 const EMPTY_FORM: UserFormData = {
@@ -180,6 +182,7 @@ const EMPTY_FORM: UserFormData = {
   is_admin: false,
   features: "",
   max_jobs: 1,
+  email: "",
 };
 
 function UserDialog({
@@ -248,6 +251,19 @@ function UserDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+              Email
+            </Label>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => set("email")(e.target.value)}
+              placeholder="user@example.com"
+              autoComplete="off"
+            />
+          </div>
+
           {mode === "create" && (
             <div className="flex flex-col gap-1.5">
               <Label className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
@@ -339,6 +355,7 @@ function UserDialog({
             onClick={handleSave}
             disabled={
               loading ||
+              !form.email.trim() ||
               (mode === "create" &&
                 (!form.username.trim() || !form.password.trim()))
             }
@@ -474,6 +491,7 @@ function UserRow({
       .filter(Boolean);
     const body: Record<string, unknown> = { features, max_jobs: form.max_jobs };
     if (form.password) body.password = form.password;
+    body.email = form.email.trim() || null;
     await patchAdminUser(user.id, body);
     toast.success(`"${user.username}" mis à jour.`);
     if (isSelf) {
@@ -534,6 +552,12 @@ function UserRow({
               max {user.max_jobs} job{user.max_jobs > 1 ? "s" : ""}
             </span>
           </div>
+          {user.email && (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
+              <MailIcon className="size-3 shrink-0" />
+              <span>{user.email}</span>
+            </div>
+          )}
 
           {/* User stats */}
           <div className="flex items-center gap-4">
@@ -750,6 +774,7 @@ function UserRow({
         initial={{
           features: user.features.join(", "),
           max_jobs: user.max_jobs,
+          email: user.email ?? "",
         }}
         mode="edit"
         username={user.username}
@@ -969,6 +994,7 @@ export default function Admin() {
         .map((s) => s.trim())
         .filter(Boolean),
       max_jobs: form.max_jobs,
+      email: form.email.trim(),
     });
     toast.success(`"${form.username}" créé.`);
     fetchUsers();

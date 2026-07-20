@@ -36,6 +36,7 @@ export interface MeJob {
 export interface MeResponse {
   id: string;
   username: string;
+  email: string | null;
   is_admin: boolean;
   features: string[];
   max_jobs: number;

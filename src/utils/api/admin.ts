@@ -24,6 +24,7 @@ export interface ActiveAdminJob {
 export interface AdminUser {
   id: string;
   username: string;
+  email: string | null;
   is_admin: boolean;
   features: string[];
   max_jobs: number;
@@ -41,12 +42,14 @@ export interface CreateUserBody {
   is_admin: boolean;
   features: string[];
   max_jobs: number;
+  email: string;
 }
 
 export interface PatchUserBody {
   password?: string;
   features?: string[];
   max_jobs?: number;
+  email?: string | null;
 }
 
 export interface SystemMetrics {

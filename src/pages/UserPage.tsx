@@ -558,6 +558,20 @@ export default function UserPage() {
                 );
               })()}
             </div>
+
+            {/* Email */}
+            {(me === null || me.email) && (
+              <div className="rounded-lg border border-border bg-muted/10 px-3 py-2.5 flex flex-col gap-1">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+                  Email
+                </span>
+                {me ? (
+                  <span className="text-sm font-semibold">{me.email}</span>
+                ) : (
+                  <div className="h-5 w-36 rounded bg-muted animate-pulse mt-0.5" />
+                )}
+              </div>
+            )}
           </div>
 
           <div className="h-px bg-border" />
